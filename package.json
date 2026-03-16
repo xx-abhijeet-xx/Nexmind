@@ -1,0 +1,32 @@
+{
+  "name": "nexmind",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^9.0.1",
+    "react-scripts": "5.0.1",
+    "react-syntax-highlighter": "^15.5.0",
+    "uuid": "^9.0.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead"
+    ],
+    "development": [
+      "last 1 chrome version"
+    ]
+  },
+  "proxy": "http://localhost:8080",
+  "devDependencies": {
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.1"
+  }
+}
