@@ -7,30 +7,15 @@ export default function InputBar() {
   const [text, setText] = useState('');
   const [attachedImage, setAttachedImage] = useState(null);
   const [listening, setListening] = useState(false);
-  const [showTools, setShowTools] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
-  const toolsMenuRef = useRef(null);
 
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleDocumentClick = (event) => {
-      if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target)) {
-        setShowTools(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleDocumentClick);
-    return () => {
-      document.removeEventListener('mousedown', handleDocumentClick);
     };
   }, []);
 
@@ -84,15 +69,6 @@ export default function InputBar() {
   const clearImage = () => {
     setAttachedImage(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const toggleTools = () => {
-    if (!loading) setShowTools(prev => !prev);
-  };
-
-  const handleToolAction = (action) => {
-    setShowTools(false);
-    action();
   };
 
   const stopVoice = () => {
@@ -221,38 +197,16 @@ export default function InputBar() {
         />
         <div className="input-bottom">
           <div className="input-left">
-            <div className="tools-menu" ref={toolsMenuRef}>
-              <button
-                className="input-icon-btn tools-trigger"
-                title="Tools"
-                onClick={toggleTools}
-                disabled={loading}
-                aria-expanded={showTools}
-                aria-haspopup="menu"
-              >
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                  <line x1="8" y1="3" x2="8" y2="13"/>
-                  <line x1="3" y1="8" x2="13" y2="8"/>
-                </svg>
-              </button>
-              {showTools && (
-                <div className="tools-menu__dropdown" role="menu" aria-label="Input tools">
-                  <button
-                    className="tools-menu__item"
-                    onClick={() => handleToolAction(openImagePicker)}
-                    disabled={loading}
-                    role="menuitem"
-                  >
-                    <span className="tools-menu__icon">
-                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
-                        <path d="M13 7L7.5 12.5a4 4 0 01-5.5-5.5l6-6a2.5 2.5 0 013.5 3.5L5 10a1 1 0 01-1.5-1.5L9 3"/>
-                      </svg>
-                    </span>
-                    <span className="tools-menu__label">Attach image</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              className="input-icon-btn"
+              title="Attach image"
+              onClick={openImagePicker}
+              disabled={loading}
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
+                <path d="M13 7L7.5 12.5a4 4 0 01-5.5-5.5l6-6a2.5 2.5 0 013.5 3.5L5 10a1 1 0 01-1.5-1.5L9 3"/>
+              </svg>
+            </button>
           </div>
           <div className="input-right">
             <button className="model-btn">

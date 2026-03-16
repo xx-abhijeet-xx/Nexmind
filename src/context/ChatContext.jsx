@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { v4 as uuid } from 'uuid';
-import { sendMessage, sendVisionMessage, generateTitle } from '../utils/api';
+import { sendMessage, sendVisionMessage, generateTitle, generateFile, detectFileRequest, getFileMimeType } from '../utils/api';
 
 const ChatContext = createContext(null);
 const STORAGE_KEY = 'paraai.chat.state.v1';
@@ -134,6 +134,65 @@ export function ChatProvider({ children }) {
           queryType: result.queryType,
           searchUsed: result.searchUsed,
           ts: Date.now(),
+        };
+
+        setSessions(prev => prev.map(s =>
+          s.id === activeId
+            ? { ...s, messages: markLastAssistant([...s.messages, aiMsg]) }
+            : s
+        ));
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Check if this is a file generation request
+    const fileRequest = detectFileRequest(messageText);
+    if (fileRequest) {
+      setLoading(true);
+      try {
+        // Be strict about content — no HTML, no links, just raw content
+        const strictPrompt = `Return ONLY the raw ${fileRequest.fileType} file content. Do not include explanations, markdown code fences, HTML anchor tags, download instructions, or any preamble.\n\n${fileRequest.prompt}`;
+        
+        const fileData = await generateFile(
+          strictPrompt,
+          fileRequest.fileType,
+          fileRequest.fileName
+        );
+
+        // Extract raw content (handle various response formats)
+        let content = fileData.content || fileData.response || '';
+        
+        // Remove markdown fences if present
+        const fencedMatch = content.match(/```[a-zA-Z0-9_-]*\n([\s\S]*?)```/);
+        if (fencedMatch) {
+          content = fencedMatch[1].trim();
+        }
+        
+        // Remove HTML anchor tags if present
+        const htmlMatch = content.match(/<a[^>]*href="[^"]*"[^>]*>([^<]*)<\/a>/i);
+        if (htmlMatch) {
+          content = htmlMatch[1];
+        }
+
+        if (!content || !content.trim()) {
+          throw new Error('File generation returned empty content');
+        }
+
+        const mimeType = getFileMimeType(fileRequest.fileType);
+        const aiMsg = {
+          id: uuid(),
+          role: 'assistant',
+          content: 'Your file is ready.',
+          fileContent: content.trim(),
+          fileName: fileData.fileName || fileRequest.fileName,
+          fileType: fileRequest.fileType,
+          mimeType,
+          ts: Date.now(),
+          isFileGeneration: true,
         };
 
         setSessions(prev => prev.map(s =>

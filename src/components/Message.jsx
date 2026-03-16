@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useChat } from '../context/ChatContext';
+import { downloadFile } from '../utils/api';
 import './Message.css';
 
 function CopyBtn({ text }) {
@@ -29,12 +30,56 @@ function CopyBtn({ text }) {
   );
 }
 
+function DownloadBtn({ onClick, label = 'Download' }) {
+  return (
+    <button className="copy-btn" onClick={onClick}>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="12" height="12">
+        <path d="M8 2v8M5 7l3 3 3-3"/>
+        <line x1="3" y1="13" x2="13" y2="13"/>
+      </svg>
+      {label}
+    </button>
+  );
+}
+
+const LANGUAGE_EXTENSIONS = {
+  markdown: 'md',
+  md: 'md',
+  text: 'txt',
+  txt: 'txt',
+  html: 'html',
+  js: 'js',
+  javascript: 'js',
+  jsx: 'jsx',
+  css: 'css',
+  json: 'json',
+};
+
+const EXT_MIME = {
+  md: 'text/markdown',
+  txt: 'text/plain',
+  html: 'text/html',
+  js: 'text/javascript',
+  jsx: 'text/javascript',
+  css: 'text/css',
+  json: 'application/json',
+};
+
 function CodeBlock({ language, value }) {
+  const ext = LANGUAGE_EXTENSIONS[(language || '').toLowerCase()] || 'txt';
+
+  const handleDownload = () => {
+    downloadFile(value, `generated.${ext}`, EXT_MIME[ext] || 'text/plain');
+  };
+
   return (
     <div className="code-block">
       <div className="code-block__head">
         <span className="code-block__lang">{language || 'code'}</span>
-        <CopyBtn text={value} />
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <DownloadBtn onClick={handleDownload} />
+          <CopyBtn text={value} />
+        </div>
       </div>
       <SyntaxHighlighter
         style={vscDarkPlus}
@@ -75,6 +120,31 @@ const components = {
   blockquote: ({ children }) => <blockquote className="md-blockquote">{children}</blockquote>,
 };
 
+function parseDownloadable(content) {
+  const text = String(content || '');
+  const uriMatch = text.match(/data:([^;]+);base64,([A-Za-z0-9+/=]+)/);
+  if (!uriMatch) return null;
+
+  const mimeType = uriMatch[1] || 'application/octet-stream';
+  const base64 = uriMatch[2];
+
+  let decoded = '';
+  try {
+    decoded = atob(base64);
+  } catch {
+    return null;
+  }
+
+  const fileNameMatch = text.match(/download=["']([^"']+)["']/i);
+  const fileName = fileNameMatch?.[1] || 'generated.txt';
+
+  return {
+    fileName,
+    content: decoded,
+    mimeType,
+  };
+}
+
 const StarIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
     <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
@@ -86,6 +156,13 @@ export default function Message({ msg }) {
   const isUser = msg.role === 'user';
   const [liked, setLiked] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const downloadable = useMemo(() => parseDownloadable(msg.content), [msg.content]);
+
+  const handleFileDownload = () => {
+    if (msg.fileContent && msg.fileName && msg.mimeType) {
+      downloadFile(msg.fileContent, msg.fileName, msg.mimeType);
+    }
+  };
 
   useEffect(() => {
     if (!previewOpen) return;
@@ -136,6 +213,23 @@ export default function Message({ msg }) {
               )}
               {msg.content && <p>{msg.content}</p>}
             </>
+          ) : msg.isFileGeneration ? (
+            <div className="file-generation-card">
+              <div className="file-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+                  <path d="M4 2h8l6 6v12H4z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/>
+                </svg>
+              </div>
+              <div className="file-card-info">
+                <p className="file-card-ready">{msg.content}</p>
+                <p className="file-card-name">{msg.fileName}</p>
+              </div>
+              <button className="file-card-download" onClick={handleFileDownload} title="Download file">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                  <path d="M8 2v8M5 7l3 3 3-3"/><line x1="3" y1="13" x2="13" y2="13"/>
+                </svg>
+              </button>
+            </div>
           ) : (
             <>
               <ReactMarkdown components={components}>
@@ -146,7 +240,7 @@ export default function Message({ msg }) {
           )}
         </div>
 
-        {!isUser && (
+        {!isUser && !msg.isFileGeneration && (
           <div className="msg-actions">
             <button className="action-icon" onClick={() => navigator.clipboard.writeText(msg.content)} title="Copy">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
@@ -182,6 +276,18 @@ export default function Message({ msg }) {
                   <path d="M14 8a6 6 0 01-6 6 6 6 0 01-4.5-2"/>
                   <polyline points="10,2 14,2 14,6"/>
                   <polyline points="6,14 2,14 2,10"/>
+                </svg>
+              </button>
+            )}
+            {downloadable && (
+              <button
+                className="action-icon"
+                onClick={() => downloadFile(downloadable.content, downloadable.fileName, downloadable.mimeType)}
+                title="Download generated file"
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
+                  <path d="M8 2v8M5 7l3 3 3-3"/>
+                  <line x1="3" y1="13" x2="13" y2="13"/>
                 </svg>
               </button>
             )}

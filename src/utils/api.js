@@ -98,3 +98,117 @@ export async function generateTitle(message) {
     return 'New conversation';
   }
 }
+
+export async function generateFile(prompt, fileType, fileName) {
+  const res = await fetch(`${API_URL}/chat/generate-file`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, fileType, fileName }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.details || err.error || 'File generation failed');
+  }
+
+  return res.json();
+}
+
+export function downloadFile(content, fileName, mimeType) {
+  const name = (fileName || 'output').trim() || 'output';
+  const extMap = {
+    'text/markdown': 'md',
+    'text/plain': 'txt',
+    'text/html': 'html',
+    'text/css': 'css',
+    'text/javascript': 'js',
+    'application/json': 'json',
+    'application/pdf': 'pdf',
+  };
+  const ext = extMap[mimeType] || '';
+  const safeName = ext && !name.toLowerCase().endsWith(`.${ext}`)
+    ? `${name}.${ext}`
+    : name;
+
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = safeName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Detect and parse file generation requests
+export function detectFileRequest(message) {
+  const text = message.toLowerCase().trim();
+  
+  // File type patterns with aliases
+  const fileTypePatterns = [
+    { patterns: ['md', 'markdown'], ext: 'md' },
+    { patterns: ['txt', 'text'], ext: 'txt' },
+    { patterns: ['javascript', 'js'], ext: 'js' },
+    { patterns: ['jsx', 'react jsx'], ext: 'jsx' },
+    { patterns: ['html'], ext: 'html' },
+    { patterns: ['css'], ext: 'css' },
+    { patterns: ['json'], ext: 'json' },
+    { patterns: ['jsonl'], ext: 'jsonl' },
+    { patterns: ['pdf'], ext: 'pdf' },
+  ];
+
+  // Build alternation pattern: md|markdown|txt|text|...
+  const allPatterns = fileTypePatterns.flatMap(ft => ft.patterns).join('|');
+  
+  // Match: (create|generate|write|make) + optional (a|an) + optional (downloadable) + file type + optional (file) + optional (with|containing|etc)
+  const pattern = new RegExp(
+    `(create|generate|write|make)\\s+(?:a\\s+|an\\s+)?(?:downloadable\\s+)?(?:\\b(?:${allPatterns})\\b)(?:\\s+file)?(?:\\s+(?:with|containing|from|called))?\\s*(.*)`,
+    'i'
+  );
+  
+  const match = text.match(pattern);
+  if (!match) return null;
+
+  // Extract file type from the message
+  let detectedExt = null;
+  for (const ft of fileTypePatterns) {
+    for (const pat of ft.patterns) {
+      if (text.includes(pat)) {
+        detectedExt = ft.ext;
+        break;
+      }
+    }
+    if (detectedExt) break;
+  }
+
+  if (!detectedExt) return null;
+
+  // Extract prompt (everything after the pattern match)
+  const prompt = (match[2] || '').trim();
+
+  // Generate filename
+  const fileName = `generated.${detectedExt}`;
+
+  return { 
+    fileType: detectedExt, 
+    prompt: prompt || 'Generate appropriate content', 
+    fileName 
+  };
+}
+
+const FILE_TYPE_MIMES = {
+  'md': 'text/markdown',
+  'txt': 'text/plain',
+  'html': 'text/html',
+  'js': 'text/javascript',
+  'jsx': 'text/javascript',
+  'css': 'text/css',
+  'json': 'application/json',
+  'jsonl': 'application/jsonl',
+  'pdf': 'application/pdf',
+};
+
+export function getFileMimeType(fileType) {
+  return FILE_TYPE_MIMES[fileType] || 'text/plain';
+}
