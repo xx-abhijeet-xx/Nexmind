@@ -171,9 +171,9 @@ export default function InputBar() {
       <div className={`input-wrap ${loading ? 'input-wrap--loading' : ''}`}>
         {attachedImage && (
           <div className="input-attachment">
-            <img src={attachedImage.preview} alt={attachedImage.name} className="input-attachment__thumb" />
+            <img src={attachedImage.preview} alt={attachedImage.name} className="input-attachment__thumb" loading="lazy" decoding="async" />
             <span className="input-attachment__name">{attachedImage.name}</span>
-            <button className="input-attachment__remove" onClick={clearImage} title="Remove image">
+            <button className="input-attachment__remove" type="button" onClick={clearImage} title="Remove image" aria-label="Remove attached image">
               ✕
             </button>
           </div>
@@ -182,6 +182,7 @@ export default function InputBar() {
           ref={textareaRef}
           className="input-textarea"
           placeholder="Message ParaAI..."
+          aria-label="Message input"
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={handleKey}
@@ -199,9 +200,11 @@ export default function InputBar() {
           <div className="input-left">
             <button
               className="input-icon-btn"
+              type="button"
               title="Attach image"
               onClick={openImagePicker}
               disabled={loading}
+              aria-label="Attach image"
             >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
                 <path d="M13 7L7.5 12.5a4 4 0 01-5.5-5.5l6-6a2.5 2.5 0 013.5 3.5L5 10a1 1 0 01-1.5-1.5L9 3"/>
@@ -209,7 +212,7 @@ export default function InputBar() {
             </button>
           </div>
           <div className="input-right">
-            <button className="model-btn">
+            <button className="model-btn" type="button" aria-label="Selected model">
               Llama 3.3 70B
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="11" height="11">
                 <polyline points="4,6 8,10 12,6"/>
@@ -217,9 +220,11 @@ export default function InputBar() {
             </button>
             <button
               className={`send-btn ${(text.trim() || attachedImage) && !loading ? 'send-btn--active' : ''}`}
+              type="button"
               onClick={handleSend}
               disabled={(!text.trim() && !attachedImage) || loading}
               title="Send (Enter)"
+              aria-label="Send message"
             >
               {loading ? (
                 <div className="spinner" />
@@ -232,8 +237,10 @@ export default function InputBar() {
             <button
               className={`input-icon-btn ${listening ? 'input-icon-btn--active' : ''}`}
               title={listening ? 'Listening...' : 'Voice input'}
+              type="button"
               onClick={startVoice}
               disabled={loading}
+              aria-label={listening ? 'Stop voice input' : 'Start voice input'}
             >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
                 <rect x="6" y="2" width="4" height="7" rx="2"/>

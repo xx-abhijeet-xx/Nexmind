@@ -14,7 +14,7 @@ function CopyBtn({ text }) {
     setTimeout(() => setCopied(false), 1800);
   };
   return (
-    <button className="copy-btn" onClick={copy}>
+    <button className="copy-btn" type="button" onClick={copy} aria-label={copied ? 'Copied' : 'Copy code'}>
       {copied ? (
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
           <polyline points="2,8 6,12 14,4"/>
@@ -32,7 +32,7 @@ function CopyBtn({ text }) {
 
 function DownloadBtn({ onClick, label = 'Download' }) {
   return (
-    <button className="copy-btn" onClick={onClick}>
+    <button className="copy-btn" type="button" onClick={onClick} aria-label={label}>
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="12" height="12">
         <path d="M8 2v8M5 7l3 3 3-3"/>
         <line x1="3" y1="13" x2="13" y2="13"/>
@@ -208,6 +208,8 @@ export default function Message({ msg }) {
                   src={msg.imagePreview}
                   alt={msg.imageName || 'Uploaded image'}
                   className="msg-image"
+                  loading="lazy"
+                  decoding="async"
                   onClick={() => setPreviewOpen(true)}
                 />
               )}
@@ -224,7 +226,7 @@ export default function Message({ msg }) {
                 <p className="file-card-ready">{msg.content}</p>
                 <p className="file-card-name">{msg.fileName}</p>
               </div>
-              <button className="file-card-download" onClick={handleFileDownload} title="Download file">
+              <button className="file-card-download" type="button" onClick={handleFileDownload} title="Download file" aria-label="Download file">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
                   <path d="M8 2v8M5 7l3 3 3-3"/><line x1="3" y1="13" x2="13" y2="13"/>
                 </svg>
@@ -242,15 +244,23 @@ export default function Message({ msg }) {
 
         {!isUser && !msg.isFileGeneration && (
           <div className="msg-actions">
-            <button className="action-icon" onClick={() => navigator.clipboard.writeText(msg.content)} title="Copy">
+            <button
+              className="action-icon"
+              type="button"
+              onClick={() => navigator.clipboard.writeText(msg.content)}
+              title="Copy"
+              aria-label="Copy response"
+            >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
                 <rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V3H2v9h2"/>
               </svg>
             </button>
             <button
               className={`action-icon ${liked === true ? 'action-icon--active' : ''}`}
+              type="button"
               onClick={() => setLiked(liked === true ? null : true)}
               title="Good response"
+              aria-label="Mark response as good"
             >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
                 <path d="M5 9V6l3-4 1 1-1 3h4l-1 6H5V9z"/><line x1="3" y1="9" x2="3" y2="15"/>
@@ -258,8 +268,10 @@ export default function Message({ msg }) {
             </button>
             <button
               className={`action-icon ${liked === false ? 'action-icon--active' : ''}`}
+              type="button"
               onClick={() => setLiked(liked === false ? null : false)}
               title="Bad response"
+              aria-label="Mark response as bad"
             >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
                 <path d="M11 7v3l-3 4-1-1 1-3H4l1-6h6v3z"/><line x1="13" y1="7" x2="13" y2="1"/>
@@ -268,8 +280,10 @@ export default function Message({ msg }) {
             {msg.isLast && (
               <button
                 className="action-icon"
+                type="button"
                 onClick={regenerate}
                 title="Regenerate response"
+                aria-label="Regenerate response"
               >
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
                   <path d="M2 8a6 6 0 016-6 6 6 0 014.5 2"/>
@@ -282,8 +296,10 @@ export default function Message({ msg }) {
             {downloadable && (
               <button
                 className="action-icon"
+                type="button"
                 onClick={() => downloadFile(downloadable.content, downloadable.fileName, downloadable.mimeType)}
                 title="Download generated file"
+                aria-label="Download generated file"
               >
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
                   <path d="M8 2v8M5 7l3 3 3-3"/>
@@ -301,8 +317,10 @@ export default function Message({ msg }) {
           <div className="msg-actions">
             <button
               className="action-icon"
+              type="button"
               onClick={() => navigator.clipboard.writeText(msg.content || '')}
               title="Copy prompt"
+              aria-label="Copy prompt"
               disabled={!msg.content}
             >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
@@ -333,7 +351,13 @@ export default function Message({ msg }) {
                 </svg>
                 Download
               </a>
-              <button className="image-preview__close" onClick={() => setPreviewOpen(false)} title="Close preview">
+              <button
+                className="image-preview__close"
+                type="button"
+                onClick={() => setPreviewOpen(false)}
+                title="Close preview"
+                aria-label="Close preview"
+              >
                 ✕
               </button>
             </div>
@@ -341,6 +365,8 @@ export default function Message({ msg }) {
               src={msg.imagePreview}
               alt={msg.imageName || 'Uploaded image preview'}
               className="image-preview__img"
+              loading="lazy"
+              decoding="async"
             />
           </div>
         </div>

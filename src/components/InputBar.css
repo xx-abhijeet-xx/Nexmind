@@ -84,6 +84,12 @@
   max-height: 140px;
   line-height: 1.6;
   display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.input-textarea:focus-visible {
+  outline: none;
 }
 
 .input-textarea::placeholder { color: var(--text3); }
