@@ -12,12 +12,16 @@ async function getAuthHeaders() {
   return { Authorization: `Bearer ${session.access_token}` };
 }
 
-export async function sendMessage(message, history = [], onToken) {
+export async function sendMessage(message, history = [], onToken, documentContext = null) {
   const auth = await getAuthHeaders();
+  const body = { message, userId: USER_ID, history };
+  if (documentContext) {
+    body.documentContext = documentContext;
+  }
   const res = await fetch(`${API_URL}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...auth },
-    body: JSON.stringify({ message, userId: USER_ID, history }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
@@ -227,4 +231,28 @@ const FILE_TYPE_MIMES = {
 
 export function getFileMimeType(fileType) {
   return FILE_TYPE_MIMES[fileType] || 'text/plain';
+}
+
+/**
+ * Upload a PDF and receive chunked text back from the backend.
+ * @param {File} file - The PDF File object
+ * @returns {Promise<{ fileName: string, pageCount: number, chunkCount: number, chunks: string[] }>}
+ */
+export async function uploadPdf(file) {
+  const auth = await getAuthHeaders();
+  const formData = new FormData();
+  formData.append('pdf', file);
+
+  const res = await fetch(`${API_URL}/upload`, {
+    method: 'POST',
+    headers: { ...auth },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.details || err.error || 'PDF upload failed');
+  }
+
+  return res.json();
 }

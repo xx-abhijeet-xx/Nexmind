@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { v4 as uuid } from 'uuid';
-import { sendMessage, sendVisionMessage, generateTitle, generateFile, detectFileRequest, getFileMimeType } from '../utils/api';
+import { sendMessage, sendVisionMessage, generateTitle, generateFile, detectFileRequest, getFileMimeType, uploadPdf } from '../utils/api';
 
 const ChatContext = createContext(null);
 const STORAGE_KEY = 'paraai.chat.state.v1';
@@ -62,6 +62,9 @@ export function ChatProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(initialState.sidebarOpen);
+  const [documentContext, setDocumentContext] = useState(null);
+
+  const clearDocumentContext = useCallback(() => setDocumentContext(null), []);
 
   const activeSession = sessions.find(s => s.id === activeId) || sessions[0];
 
@@ -247,8 +250,12 @@ export function ChatProvider({ children }) {
               )
             };
           }));
-        }
+        },
+        documentContext,
       );
+
+      // Clear the document context after it has been used
+      if (documentContext) clearDocumentContext();
 
       setSessions(prev => prev.map(s => {
         if (s.id !== activeId) return s;
@@ -272,7 +279,7 @@ export function ChatProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [activeId, activeSession, loading, updateTitle]);
+  }, [activeId, activeSession, loading, updateTitle, documentContext, clearDocumentContext]);
 
   const regenerate = useCallback(async () => {
     if (loading) return;
@@ -317,7 +324,9 @@ export function ChatProvider({ children }) {
       sessions, activeId, setActiveId,
       activeSession, loading, error, setError,
       sidebarOpen, setSidebarOpen,
+      documentContext, setDocumentContext, clearDocumentContext,
       newSession, send, deleteSession, regenerate,
+      uploadPdf,
     }}>
       {children}
     </ChatContext.Provider>

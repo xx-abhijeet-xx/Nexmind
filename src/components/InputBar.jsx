@@ -3,12 +3,14 @@ import { useChat } from '../context/ChatContext';
 import './InputBar.css';
 
 export default function InputBar() {
-  const { send, loading, setError } = useChat();
+  const { send, loading, setError, documentContext, setDocumentContext, clearDocumentContext, uploadPdf } = useChat();
   const [text, setText] = useState('');
   const [attachedImage, setAttachedImage] = useState(null);
   const [listening, setListening] = useState(false);
+  const [pdfUploading, setPdfUploading] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
@@ -69,6 +71,31 @@ export default function InputBar() {
   const clearImage = () => {
     setAttachedImage(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const openPdfPicker = () => {
+    if (!loading && !pdfUploading) pdfInputRef.current?.click();
+  };
+
+  const onSelectPdf = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setError('Only PDF files are supported');
+      return;
+    }
+
+    setPdfUploading(true);
+    setError(null);
+    try {
+      const result = await uploadPdf(file);
+      setDocumentContext(result);
+    } catch (err) {
+      setError(err.message || 'PDF upload failed');
+    } finally {
+      setPdfUploading(false);
+      if (pdfInputRef.current) pdfInputRef.current.value = '';
+    }
   };
 
   const stopVoice = () => {
@@ -196,6 +223,13 @@ export default function InputBar() {
           onChange={onSelectImage}
           className="visually-hidden"
         />
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf"
+          onChange={onSelectPdf}
+          className="visually-hidden"
+        />
         <div className="input-bottom">
           <div className="input-left">
             <button
@@ -210,6 +244,39 @@ export default function InputBar() {
                 <path d="M13 7L7.5 12.5a4 4 0 01-5.5-5.5l6-6a2.5 2.5 0 013.5 3.5L5 10a1 1 0 01-1.5-1.5L9 3"/>
               </svg>
             </button>
+            <button
+              className={`input-icon-btn ${documentContext ? 'input-icon-btn--active' : ''}`}
+              type="button"
+              title="Upload PDF"
+              onClick={openPdfPicker}
+              disabled={loading || pdfUploading}
+              aria-label="Upload PDF"
+            >
+              {pdfUploading ? (
+                <div className="spinner" style={{ width: 12, height: 12, borderWidth: 1.5 }} />
+              ) : (
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
+                  <path d="M9 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6L9 2z"/>
+                  <polyline points="9,2 9,6 13,6"/>
+                  <line x1="5" y1="9" x2="11" y2="9"/>
+                  <line x1="5" y1="11.5" x2="9" y2="11.5"/>
+                </svg>
+              )}
+            </button>
+            {documentContext && (
+              <div className="pdf-indicator">
+                <span className="pdf-indicator__name">{documentContext.fileName}</span>
+                <button
+                  className="pdf-indicator__clear"
+                  type="button"
+                  onClick={clearDocumentContext}
+                  title="Remove document"
+                  aria-label="Remove uploaded document"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
           <div className="input-right">
             <button className="model-btn" type="button" aria-label="Selected model">
