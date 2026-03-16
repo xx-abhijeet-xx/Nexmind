@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useChat } from '../context/ChatContext';
+import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
 const StarIcon = () => (
@@ -10,8 +11,13 @@ const StarIcon = () => (
 
 export default function Sidebar() {
   const { sessions, activeId, setActiveId, newSession, deleteSession, setSidebarOpen, sidebarOpen } = useChat();
+  const { user, signOut } = useAuth();
   const [search, setSearch] = useState('');
   const [searching, setSearching] = useState(false);
+
+  const handleSignOut = async () => {
+    try { await signOut(); } catch (err) { console.error('Sign out error:', err); }
+  };
 
   const filtered = sessions.filter(s =>
     s.title.toLowerCase().includes(search.toLowerCase())
@@ -134,22 +140,16 @@ export default function Sidebar() {
 
       <div className="sb-footer">
         <div className="user-row">
-          <div className="user-av">A</div>
+          <div className="user-av">{user?.email?.[0]?.toUpperCase() || 'U'}</div>
           <div>
-            <div className="user-name">Guest</div>
+            <div className="user-name">{user?.email || 'User'}</div>
             <div className="user-plan">Free plan</div>
           </div>
         </div>
         <div className="footer-btns">
-          <button className="icon-btn" type="button" title="Download conversation" aria-label="Download conversation">
+          <button className="icon-btn" type="button" title="Sign out" aria-label="Sign out" onClick={handleSignOut}>
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
-              <path d="M8 2v8M5 7l3 3 3-3"/><line x1="3" y1="13" x2="13" y2="13"/>
-            </svg>
-          </button>
-          <button className="icon-btn" type="button" title="Settings" aria-label="Settings">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
-              <circle cx="8" cy="8" r="2.5"/>
-              <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/>
+              <path d="M6 2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2M10 12l4-4-4-4M14 8H6"/>
             </svg>
           </button>
         </div>

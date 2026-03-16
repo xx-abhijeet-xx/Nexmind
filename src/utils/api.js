@@ -1,10 +1,22 @@
+import { supabase } from '../config/supabase';
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 const USER_ID = process.env.REACT_APP_USER_ID || 'Guest';
 
+/**
+ * Returns an Authorization header with the current Supabase JWT.
+ */
+async function getAuthHeaders() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) return {};
+  return { Authorization: `Bearer ${session.access_token}` };
+}
+
 export async function sendMessage(message, history = [], onToken) {
+  const auth = await getAuthHeaders();
   const res = await fetch(`${API_URL}/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...auth },
     body: JSON.stringify({ message, userId: USER_ID, history }),
   });
 
@@ -52,6 +64,7 @@ export async function sendMessage(message, history = [], onToken) {
 }
 
 export async function sendVisionMessage(message, imageFile, history = []) {
+  const auth = await getAuthHeaders();
   const formData = new FormData();
   formData.append('image', imageFile);
   formData.append('message', message || '');
@@ -59,6 +72,7 @@ export async function sendVisionMessage(message, imageFile, history = []) {
 
   const res = await fetch(`${API_URL}/chat/vision`, {
     method: 'POST',
+    headers: { ...auth },
     body: formData,
   });
 
@@ -87,9 +101,10 @@ export async function checkHealth() {
 
 export async function generateTitle(message) {
   try {
+    const auth = await getAuthHeaders();
     const res = await fetch(`${API_URL}/chat/title`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...auth },
       body: JSON.stringify({ message }),
     });
     const data = await res.json();
@@ -100,9 +115,10 @@ export async function generateTitle(message) {
 }
 
 export async function generateFile(prompt, fileType, fileName) {
+  const auth = await getAuthHeaders();
   const res = await fetch(`${API_URL}/chat/generate-file`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...auth },
     body: JSON.stringify({ prompt, fileType, fileName }),
   });
 
