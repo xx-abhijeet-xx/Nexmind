@@ -1,5 +1,5 @@
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-const USER_ID = process.env.REACT_APP_USER_ID || 'abhijeet';
+const USER_ID = process.env.REACT_APP_USER_ID || 'Guest';
 
 export async function sendMessage(message, history = [], onToken) {
   const res = await fetch(`${API_URL}/chat`, {

@@ -125,7 +125,7 @@ export default function Sidebar() {
         <div className="user-row">
           <div className="user-av">A</div>
           <div>
-            <div className="user-name">Abhijeet</div>
+            <div className="user-name">Guest</div>
             <div className="user-plan">Free plan</div>
           </div>
         </div>
