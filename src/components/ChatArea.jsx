@@ -80,14 +80,14 @@ export default function ChatArea() {
 
   const copyConversation = () => {
     const text = activeSession.messages
-      .map(m => `${m.role === 'user' ? 'You' : 'NexMind'}: ${m.content}`)
+      .map(m => `${m.role === 'user' ? 'You' : 'ParaAI'}: ${m.content}`)
       .join('\n\n');
     navigator.clipboard.writeText(text);
   };
 
   const downloadConversation = () => {
     const text = activeSession.messages
-      .map(m => `${m.role === 'user' ? 'You' : 'NexMind'}: ${m.content}`)
+      .map(m => `${m.role === 'user' ? 'You' : 'ParaAI'}: ${m.content}`)
       .join('\n\n');
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);

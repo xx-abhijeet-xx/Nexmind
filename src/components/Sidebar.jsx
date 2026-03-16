@@ -22,7 +22,7 @@ export default function Sidebar() {
       <div className="sb-topbar">
         <div className="sb-brand">
           <span className="sb-star"><StarIcon /></span>
-          <span className="sb-name">NexMind</span>
+          <span className="sb-name">ParaAI</span>
         </div>
         <button className="icon-btn" onClick={() => setSidebarOpen(false)} title="Close sidebar">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">

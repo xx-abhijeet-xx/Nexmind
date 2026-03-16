@@ -1,21 +1,21 @@
-# NexMind — AI Assistant Platform
+# ParaAI — AI Assistant Platform
 
 > A production-grade, browser-based AI assistant with real-time streaming, web search, persistent memory, vision understanding, and smart multi-model routing. Built from scratch with React + Node.js + Express, deployed on Railway and Vercel.
 
-![NexMind Main UI](./src/Assets/image.png)
-![NexMind Vision Example](./src/Assets/image2.png)
+![ParaAI Main UI](./src/Assets/image.png)
+![ParaAI Vision Example](./src/Assets/image2.png)
 
 ---
 
 ## Live Demo
 
-- **Frontend:** [nexmind.vercel.app](https://nexmind.vercel.app)
+- **Frontend:** [paraai.vercel.app](https://paraai.vercel.app)
 
 ---
 
-## What is NexMind?
+## What is ParaAI?
 
-NexMind is a self-hosted AI assistant platform that rivals commercial tools like ChatGPT — built entirely with open source models and free APIs. It classifies every query automatically and routes it to the best available model, giving you the right tool for every task without switching apps.
+ParaAI is a self-hosted AI assistant platform that rivals commercial tools like ChatGPT — built entirely with open source models and free APIs. It classifies every query automatically and routes it to the best available model, giving you the right tool for every task without switching apps.
 
 ---
 
@@ -116,7 +116,7 @@ my-ai-assistant/               ← Backend (Node.js)
 ├── .env                       ← Environment variables (never commit)
 └── package.json
 
-nexmind/                       ← Frontend (React)
+paraai/                        ← Frontend (React)
 ├── src/
 │   ├── components/
 │   │   ├── Sidebar.jsx        ← Navigation + chat history
@@ -179,7 +179,7 @@ Backend runs at `http://localhost:8080`
 ### 5. Install frontend dependencies
 
 ```bash
-cd ../nexmind
+cd ../paraai
 npm install
 ```
 
@@ -308,7 +308,7 @@ Add environment variables in Railway dashboard → Variables tab.
 npm install -g vercel
 
 # Deploy
-cd nexmind
+cd paraai
 vercel
 ```
 
@@ -328,7 +328,7 @@ Add `REACT_APP_API_URL` pointing to your Railway URL in Vercel dashboard → Set
 
 ## What I Learned
 
-Building NexMind taught me:
+Building ParaAI taught me:
 
 - **Streaming APIs** — implementing Server-Sent Events end to end from Express to React
 - **LLM routing** — how to classify queries and route to specialized models

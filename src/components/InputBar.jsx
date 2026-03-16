@@ -205,7 +205,7 @@ export default function InputBar() {
         <textarea
           ref={textareaRef}
           className="input-textarea"
-          placeholder="Message NexMind..."
+          placeholder="Message ParaAI..."
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={handleKey}
@@ -291,7 +291,7 @@ export default function InputBar() {
           </div>
         </div>
       </div>
-      <p className="input-hint">NexMind can make mistakes. Double-check important info.</p>
+      <p className="input-hint">ParaAI can make mistakes. Double-check important info.</p>
     </div>
   );
 }

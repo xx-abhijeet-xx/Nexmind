@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid';
 import { sendMessage, sendVisionMessage, generateTitle } from '../utils/api';
 
 const ChatContext = createContext(null);
-const STORAGE_KEY = 'nexmind.chat.state.v1';
+const STORAGE_KEY = 'paraai.chat.state.v1';
 
 function createDefaultSession() {
   return { id: 'default', title: 'New conversation', messages: [], createdAt: Date.now() };
