@@ -91,6 +91,28 @@
   }
 }
 
+/* Document attachment chip (user bubble) */
+.msg-doc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  background: rgba(232, 103, 58, 0.1);
+  border: 1px solid rgba(232, 103, 58, 0.25);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  max-width: 100%;
+}
+
+.msg-doc-chip span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Markdown */
 .md-p { margin-bottom: 10px; }
 .md-p:last-child { margin-bottom: 0; }

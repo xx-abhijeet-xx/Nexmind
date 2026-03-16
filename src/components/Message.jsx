@@ -213,6 +213,15 @@ export default function Message({ msg }) {
                   onClick={() => setPreviewOpen(true)}
                 />
               )}
+              {msg.documentName && (
+                <div className="msg-doc-chip">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
+                    <path d="M9 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6L9 2z"/>
+                    <polyline points="9,2 9,6 13,6"/>
+                  </svg>
+                  <span>{msg.documentName}</span>
+                </div>
+              )}
               {msg.content && <p>{msg.content}</p>}
             </>
           ) : msg.isFileGeneration ? (

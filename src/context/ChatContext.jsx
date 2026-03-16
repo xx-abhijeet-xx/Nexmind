@@ -110,6 +110,7 @@ export function ChatProvider({ children }) {
       content: messageText,
       imagePreview,
       imageName: imageFile?.name,
+      documentName: documentContext?.fileName || null,
       ts: Date.now(),
     };
 
