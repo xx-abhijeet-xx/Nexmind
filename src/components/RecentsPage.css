@@ -1,0 +1,135 @@
+.recents-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  padding: 40px 10%;
+  overflow-y: auto;
+}
+
+.recents-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.recents-title {
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text);
+  margin: 0;
+}
+
+.recents-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.recents-new-btn:hover {
+  opacity: 0.9;
+}
+
+.recents-search-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.recents-search-wrap:focus-within {
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.recents-search-icon {
+  color: var(--text3);
+}
+
+.recents-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.recents-search-input::placeholder {
+  color: var(--text3);
+}
+
+.recents-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.recents-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.recents-item:hover {
+  background: var(--bg2);
+}
+
+.recents-item:last-child {
+  border-bottom: none;
+}
+
+.recents-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.recents-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recents-item-meta {
+  font-size: 13px;
+  color: var(--text3);
+}
+
+.recents-item-arrow {
+  color: var(--text3);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.2s;
+}
+
+.recents-item:hover .recents-item-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.recents-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text3);
+}

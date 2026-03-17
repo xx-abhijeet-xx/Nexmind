@@ -4,6 +4,16 @@
   flex-direction: column;
   min-width: 0;
   background: var(--bg);
+  position: relative;
+}
+
+.chat-area--empty {
+  justify-content: center;
+  align-items: center;
+}
+
+.chat-area--empty .chat-messages {
+  display: none;
 }
 
 .chat-topbar {

@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '../context/ChatContext';
+import ContextualSuggestions from './ContextualSuggestions';
 import './InputBar.css';
 
-export default function InputBar() {
+export default function InputBar({ isNewChat }) {
   const { send, loading, setError, documentContext, setDocumentContext, clearDocumentContext, uploadPdf } = useChat();
   const [text, setText] = useState('');
   const [attachedImage, setAttachedImage] = useState(null);
   const [listening, setListening] = useState(false);
   const [pdfUploading, setPdfUploading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const pdfInputRef = useRef(null);
@@ -40,6 +42,12 @@ export default function InputBar() {
     setAttachedImage(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const handleSuggestionSelect = (suggestion) => {
+    setText(suggestion + ': ');
+    textareaRef.current?.focus();
+  };
+
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -212,6 +220,8 @@ export default function InputBar() {
           aria-label="Message input"
           value={text}
           onChange={e => setText(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           onKeyDown={handleKey}
           rows={1}
           disabled={loading}
@@ -279,7 +289,7 @@ export default function InputBar() {
             )}
           </div>
           <div className="input-right">
-            <button className="model-btn" type="button" aria-label="Selected model">
+            <button className="model-btn" type="button" aria-label="Selected model" style={{padding:'0.2vw', fontSize:'0.8vw', fontWeight:'bold', borderRadius:'5px', border:'none', backgroundColor:'transparent', color:'white'}}>
               Llama 3.3 70B
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="11" height="11">
                 <polyline points="4,6 8,10 12,6"/>
@@ -296,7 +306,7 @@ export default function InputBar() {
               {loading ? (
                 <div className="spinner" />
               ) : (
-                <svg viewBox="0 0 16 16" fill="white" width="13" height="13">
+                <svg viewBox="0 0 16 16" fill="black" width="13" height="13">
                   <path d="M2 8L14 2L8 14L7 9L2 8Z"/>
                 </svg>
               )}
@@ -319,7 +329,12 @@ export default function InputBar() {
           </div>
         </div>
       </div>
-      <p className="input-hint">ParaAI can make mistakes. Double-check important info.</p>
+      
+      {isNewChat && (
+        <div className="input-suggestions-wrapper">
+          <ContextualSuggestions onSelect={handleSuggestionSelect} />
+        </div>
+      )}
     </div>
   );
 }

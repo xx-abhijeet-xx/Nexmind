@@ -1,0 +1,125 @@
+.artifact-viewer {
+  width: 45%;
+  min-width: 400px;
+  max-width: 800px;
+  height: 100vh;
+  border-left: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.05);
+  position: relative;
+  z-index: 40;
+}
+
+.artifact-header {
+  height: 60px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 0;
+  background: var(--bg-elevated);
+}
+
+.artifact-tabs {
+  display: flex;
+  height: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.artifact-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.artifact-tab {
+  padding: 0 16px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-color);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+  min-width: max-content;
+}
+
+.artifact-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.artifact-tab.active {
+  color: var(--brand-blue);
+  background: var(--bg-primary);
+  border-bottom: 2px solid var(--brand-blue);
+}
+
+.artifact-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--brand-blue);
+  color: var(--brand-blue);
+  background: rgba(59, 130, 246, 0.05);
+  font-size: 13px;
+  font-weight: 500;
+  width: auto;
+}
+
+.action-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.divider-v {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+  margin: 0 4px;
+}
+
+.artifact-body {
+  flex: 1;
+  overflow: auto;
+  background: #0d1117; /* GitHub dark mode dark for code */
+  position: relative;
+}
+
+.artifact-code {
+  margin: 0;
+  padding: 24px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  color: #c9d1d9;
+  white-space: pre-wrap;
+}
+
+.artifact-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}

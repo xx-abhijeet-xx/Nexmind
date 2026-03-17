@@ -340,10 +340,6 @@ export default function Message({ msg }) {
         )}
       </div>
 
-      {isUser && (
-        <div className="msg-avatar msg-avatar--user">AV</div>
-      )}
-
       {previewOpen && msg.imagePreview && (
         <div className="image-preview" onClick={() => setPreviewOpen(false)}>
           <div className="image-preview__content" onClick={(e) => e.stopPropagation()}>

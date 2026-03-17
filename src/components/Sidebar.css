@@ -10,9 +10,59 @@
 }
 
 .sidebar--closed {
-  width: 0;
-  opacity: 0;
+  width: 64px;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+
+.sidebar--closed .sb-name,
+.sidebar--closed .nav-btn-text,
+.sidebar--closed .sb-label,
+.sidebar--closed .chat-row__title,
+.sidebar--closed .chat-row__del,
+.sidebar--closed .footer-info,
+.sidebar--closed .search-input {
+  display: none;
+}
+
+.sidebar--closed .sb-topbar {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar--closed .sb-topbar .icon-btn {
+  display: none; /* Hide the collapse toggle button since ChatArea shows a hamburger */
+}
+
+.sidebar--closed .sb-brand {
+  margin: 0 auto;
+}
+
+.sidebar--closed .nav-btn {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.sidebar--closed .nav-btn svg {
+  margin: 0;
+}
+
+.sidebar--closed .search-wrap {
+  padding: 0;
   border: none;
+  background: transparent;
+  justify-content: center;
+  margin: 0;
+}
+
+.sidebar--closed .chat-row {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.sidebar--closed .user-row {
+  justify-content: center;
+  width: 100%;
 }
 
 .sb-topbar {

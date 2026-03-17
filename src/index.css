@@ -15,6 +15,17 @@
   --green: #34d399;
   --sans: 'DM Sans', sans-serif;
   --mono: 'JetBrains Mono', monospace;
+
+  /* Workspace Redesign Aliases */
+  --bg-primary: var(--bg);
+  --bg-elevated: var(--bg2);
+  --bg-hover: var(--bg3);
+  --text-primary: var(--text);
+  --text-secondary: var(--text2);
+  --text-tertiary: var(--text3);
+  --border-color: var(--border);
+  --brand-blue: var(--blue);
+  --font-mono: var(--mono);
 }
 
 html, body, #root { height: 100%; }

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ChatProvider } from './context/ChatContext';
-import Sidebar from './components/Sidebar';
-import ChatArea from './components/ChatArea';
+import WorkspaceLayout from './components/WorkspaceLayout';
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
 import './App.css';
@@ -26,12 +26,11 @@ function AuthGate() {
   }
 
   return (
-    <ChatProvider>
-      <div className="app-shell">
-        <Sidebar />
-        <ChatArea />
-      </div>
-    </ChatProvider>
+    <BrowserRouter>
+      <ChatProvider>
+        <WorkspaceLayout />
+      </ChatProvider>
+    </BrowserRouter>
   );
 }
 

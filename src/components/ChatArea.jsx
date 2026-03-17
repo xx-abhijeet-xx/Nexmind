@@ -10,17 +10,6 @@ const StarIcon = () => (
   </svg>
 );
 
-const TEMPLATES = [
-  { label: 'Fix my code', prompt: 'Fix this code and explain what was wrong:\n\n', icon: '🔧' },
-  { label: 'Review my code', prompt: 'Review this code for bugs, performance, and best practices:\n\n', icon: '👁️' },
-  { label: 'Write a component', prompt: 'Write a production-ready React component for: ', icon: '⚛️' },
-  { label: 'Debug this error', prompt: 'Help me debug this error:\n\n', icon: '🐛' },
-  { label: 'Explain a concept', prompt: 'Explain this concept clearly with examples: ', icon: '💡' },
-  { label: 'Design a system', prompt: 'Design the architecture for: ', icon: '🏗️' },
-  { label: 'Write a Spring Boot API', prompt: 'Write a production Spring Boot REST API for: ', icon: '☕' },
-  { label: 'Latest AI news', prompt: 'What are the latest developments in AI today?', icon: '📰' },
-];
-
 function TypingIndicator() {
   return (
     <div className="message message--ai">
@@ -32,46 +21,10 @@ function TypingIndicator() {
   );
 }
 
-function EmptyState() {
-  const handleTemplate = (template) => {
-    const inputEl = document.querySelector('.input-textarea');
-    if (inputEl) {
-      inputEl.value = template.prompt;
-      inputEl.focus();
-      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype, 'value'
-      ).set;
-      nativeInputValueSetter.call(inputEl, template.prompt);
-      inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-  };
-
-  return (
-    <div className="empty-state">
-      <div className="empty-icon"><StarIcon /></div>
-      <h2 className="empty-title">How can I help?</h2>
-      <p className="empty-subtitle">Choose a template or type anything</p>
-      <div className="template-grid">
-        {TEMPLATES.map(t => (
-          <button
-            key={t.label}
-            className="template-btn"
-            type="button"
-            onClick={() => handleTemplate(t)}
-            aria-label={`Use template: ${t.label}`}
-          >
-            <span className="template-icon">{t.icon}</span>
-            <span className="template-label">{t.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function ChatArea() {
   const { activeSession, loading, error, setError, sidebarOpen, setSidebarOpen } = useChat();
   const bottomRef = useRef(null);
+  const isNewChat = activeSession.messages.length === 0;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -98,36 +51,34 @@ export default function ChatArea() {
   };
 
   return (
-    <div className="chat-area">
-      <div className="chat-topbar">
-        {!sidebarOpen && (
-          <button className="icon-btn" type="button" onClick={() => setSidebarOpen(true)} title="Open sidebar" aria-label="Open sidebar">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
-              <rect x="2" y="2" width="12" height="12" rx="2"/>
-              <line x1="6" y1="2" x2="6" y2="14"/>
+    <div className={`chat-area ${isNewChat ? 'chat-area--empty' : ''}`}>
+      {!isNewChat && (
+        <div className="chat-topbar">
+          {!sidebarOpen && (
+            <button className="icon-btn" type="button" onClick={() => setSidebarOpen(true)} title="Open sidebar" aria-label="Open sidebar">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
+                <rect x="2" y="2" width="12" height="12" rx="2"/>
+                <line x1="6" y1="2" x2="6" y2="14"/>
+              </svg>
+            </button>
+          )}
+          <span className="topbar-title">{activeSession.title}</span>
+          <button className="icon-btn" type="button" onClick={copyConversation} title="Copy conversation" aria-label="Copy conversation">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
+              <circle cx="12" cy="4" r="1.8"/><circle cx="4" cy="8" r="1.8"/><circle cx="12" cy="12" r="1.8"/>
+              <line x1="5.8" y1="7" x2="10.2" y2="5"/><line x1="5.8" y1="9" x2="10.2" y2="11"/>
             </svg>
           </button>
-        )}
-        <span className="topbar-title">{activeSession.title}</span>
-        <button className="icon-btn" type="button" onClick={copyConversation} title="Copy conversation" aria-label="Copy conversation">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
-            <circle cx="12" cy="4" r="1.8"/><circle cx="4" cy="8" r="1.8"/><circle cx="12" cy="12" r="1.8"/>
-            <line x1="5.8" y1="7" x2="10.2" y2="5"/><line x1="5.8" y1="9" x2="10.2" y2="11"/>
-          </svg>
-        </button>
-        <button className="icon-btn" type="button" onClick={downloadConversation} title="Download conversation" aria-label="Download conversation">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
-            <path d="M8 2v8M5 7l3 3 3-3"/><line x1="3" y1="13" x2="13" y2="13"/>
-          </svg>
-        </button>
-      </div>
+          <button className="icon-btn" type="button" onClick={downloadConversation} title="Download conversation" aria-label="Download conversation">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
+              <path d="M8 2v8M5 7l3 3 3-3"/><line x1="3" y1="13" x2="13" y2="13"/>
+            </svg>
+          </button>
+        </div>
+      )}
 
       <div className="chat-messages">
-        {activeSession.messages.length === 0 ? (
-          <EmptyState />
-        ) : (
-          activeSession.messages.map(msg => <Message key={msg.id} msg={msg} />)
-        )}
+        {!isNewChat && activeSession.messages.map(msg => <Message key={msg.id} msg={msg} />)}
         {loading && activeSession.messages[activeSession.messages.length - 1]?.role !== 'assistant' && (
           <TypingIndicator />
         )}
@@ -143,7 +94,7 @@ export default function ChatArea() {
         <div ref={bottomRef} />
       </div>
 
-      <InputBar />
+      <InputBar isNewChat={isNewChat} />
     </div>
   );
 }

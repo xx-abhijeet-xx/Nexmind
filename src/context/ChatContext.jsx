@@ -63,7 +63,8 @@ export function ChatProvider({ children }) {
   const [error, setError] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(initialState.sidebarOpen);
   const [documentContext, setDocumentContext] = useState(null);
-
+  const [artifactViewerOpen, setArtifactViewerOpen] = useState(false);
+  const [artifacts, setArtifacts] = useState([]); // Array of { path, content, language }
   const clearDocumentContext = useCallback(() => setDocumentContext(null), []);
 
   const activeSession = sessions.find(s => s.id === activeId) || sessions[0];
@@ -234,10 +235,61 @@ export function ChatProvider({ children }) {
 
     setLoading(true);
     try {
+      let accumulatedContent = '';
+      let isInsideFile = false;
+      let currentFilePath = '';
+      let currentFileContent = '';
+      
       const metadata = await sendMessage(
         messageText,
         activeSession.messages,
         (token) => {
+          accumulatedContent += token;
+          let visibleContent = accumulatedContent;
+
+          // Naive state machine for XML parsing on the fly
+          // Look for <file path="...">
+          const fileStartMatch = accumulatedContent.match(/<file\s+path="([^"]+)">/);
+          
+          if (fileStartMatch) {
+            isInsideFile = true;
+            currentFilePath = fileStartMatch[1];
+            
+            // The content BEFORE the tag is still visible chat text
+            const beforeStart = accumulatedContent.substring(0, fileStartMatch.index);
+            visibleContent = beforeStart;
+            
+            // Check if we also have the closing tag yet
+            const fileEndMatch = accumulatedContent.substring(fileStartMatch.index).match(/<\/file>/);
+            
+            if (fileEndMatch) {
+              // File is complete
+              const startIdx = fileStartMatch.index + fileStartMatch[0].length;
+              const endIdx = fileStartMatch.index + fileEndMatch.index;
+              currentFileContent = accumulatedContent.substring(startIdx, endIdx).trim();
+              
+              // Push to artifacts
+              setArtifacts(prev => {
+                const existing = prev.findIndex(a => a.path === currentFilePath);
+                if (existing >= 0) {
+                  const copy = [...prev];
+                  copy[existing].content = currentFileContent;
+                  return copy;
+                }
+                return [...prev, { path: currentFilePath, content: currentFileContent }];
+              });
+              setArtifactViewerOpen(true);
+              
+              // Reset state, but keep accumulating everything else
+              const afterEnd = accumulatedContent.substring(fileStartMatch.index + fileEndMatch.index + fileEndMatch[0].length);
+              accumulatedContent = beforeStart + afterEnd;
+              isInsideFile = false;
+              currentFilePath = '';
+              currentFileContent = '';
+              visibleContent = accumulatedContent;
+            }
+          }
+
           setSessions(prev => prev.map(s => {
             if (s.id !== activeId) return s;
             return {
@@ -245,7 +297,7 @@ export function ChatProvider({ children }) {
               messages: markLastAssistant(
                 s.messages.map(m =>
                   m.id === aiId
-                    ? { ...m, content: m.content + token }
+                    ? { ...m, content: visibleContent }
                     : m
                 )
               )
@@ -325,9 +377,15 @@ export function ChatProvider({ children }) {
       sessions, activeId, setActiveId,
       activeSession, loading, error, setError,
       sidebarOpen, setSidebarOpen,
-      documentContext, setDocumentContext, clearDocumentContext,
+      documentContext, setDocumentContext,
+      clearDocumentContext,
       newSession, send, deleteSession, regenerate,
+      updateTitle,
       uploadPdf,
+      artifactViewerOpen,
+      setArtifactViewerOpen,
+      artifacts,
+      setArtifacts,
     }}>
       {children}
     </ChatContext.Provider>
