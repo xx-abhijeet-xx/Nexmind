@@ -51,7 +51,6 @@ exports.handler = async (event, context) => {
 
   try {
     // ── Pre-generation Setup ──
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     let authObj = {};
     if (process.env.TAVILY_API_KEY) authObj.tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY });
     if (process.env.MEM0_API_KEY) authObj.memory = new MemoryClient({ apiKey: process.env.MEM0_API_KEY });
@@ -153,6 +152,7 @@ exports.handler = async (event, context) => {
       }
     } else {
       // ── Groq Flow ──
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
       try {
         const stream = await groq.chat.completions.create({
           model: modelId,
