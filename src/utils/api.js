@@ -1,7 +1,9 @@
 import { supabase } from '../config/supabase';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? '/.netlify/functions' 
+  : (process.env.REACT_APP_API_URL || 'http://localhost:8080');
 const USER_ID = process.env.REACT_APP_USER_ID || 'Guest';
 
 /**
@@ -257,23 +259,41 @@ export function getFileMimeType(fileType) {
  */
 export async function uploadPdf(file, onProgress, abortSignal) {
   const auth = await getAuthHeaders();
-  const formData = new FormData();
-  formData.append('pdf', file);
 
-  try {
-    const res = await axios.post(`${API_URL}/upload`, formData, {
-      headers: { ...auth, 'Content-Type': 'multipart/form-data' },
-      signal: abortSignal,
-      onUploadProgress: (progressEvent) => {
-        if (onProgress && progressEvent.total) {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(percentCompleted);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result.split(',')[1];
+        const payload = { pdfBase64: base64Data, fileName: file.name };
+        
+        const res = await axios.post(`${API_URL}/upload`, payload, {
+          headers: { ...auth, 'Content-Type': 'application/json' },
+          signal: abortSignal,
+          onUploadProgress: (progressEvent) => {
+            if (onProgress && progressEvent.total) {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              onProgress(percentCompleted);
+            }
+          },
+        });
+        
+        resolve({
+          fileName: res.data.fileName,
+          pageCount: res.data.pageCount,
+          chunkCount: res.data.chunkCount,
+          chunks: res.data.chunks,
+        });
+      } catch (err) {
+        if (axios.isCancel(err)) {
+          reject(new Error('canceled'));
+        } else {
+          const errMsg = err.response?.data?.error || err.message || 'Upload failed';
+          reject(new Error(errMsg));
         }
       }
-    });
-    return res.data;
-  } catch (err) {
-    const errorMsg = err.response?.data?.details || err.response?.data?.error || 'PDF upload failed';
-    throw new Error(errorMsg);
-  }
+    };
+    reader.onerror = () => reject(new Error('Failed to read PDF file'));
+    reader.readAsDataURL(file);
+  });
 }
