@@ -1,10 +1,12 @@
 import { supabase } from '../config/supabase';
 import axios from 'axios';
 
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/.netlify/functions' 
-  : (process.env.REACT_APP_API_URL || 'http://localhost:8080');
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 const USER_ID = process.env.REACT_APP_USER_ID || 'Guest';
+
+if (process.env.NODE_ENV === 'production') {
+  console.log("Fetching to:", API_URL);
+}
 
 /**
  * Returns an Authorization header with the current Supabase JWT.
