@@ -63,10 +63,12 @@ export function ChatProvider({ children }) {
   const [error, setError] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(initialState.sidebarOpen);
   const [documentContext, setDocumentContext] = useState(null);
+  const [rateLimitStats, setRateLimitStats] = useState(null);
   const [artifactViewerOpen, setArtifactViewerOpen] = useState(false);
   const [artifacts, setArtifacts] = useState([]); // Array of { path, content, language }
   const clearDocumentContext = useCallback(() => setDocumentContext(null), []);
-
+  
+  // Extend activeSession with rate limit data for convenience (optional)
   const activeSession = sessions.find(s => s.id === activeId) || sessions[0];
 
   useEffect(() => {
@@ -83,6 +85,13 @@ export function ChatProvider({ children }) {
       setActiveId(sessions[0].id);
     }
   }, [sessions, activeId]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const newSession = useCallback(() => {
     const id = uuid();
@@ -206,6 +215,7 @@ export function ChatProvider({ children }) {
             : s
         ));
       } catch (err) {
+        if (err.usage) setRateLimitStats(err.usage);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -324,6 +334,7 @@ export function ChatProvider({ children }) {
         };
       }));
     } catch (err) {
+      if (err.usage) setRateLimitStats(err.usage);
       setError(err.message);
       setSessions(prev => prev.map(s => ({
         ...s,
@@ -379,6 +390,7 @@ export function ChatProvider({ children }) {
       sidebarOpen, setSidebarOpen,
       documentContext, setDocumentContext,
       clearDocumentContext,
+      rateLimitStats, setRateLimitStats,
       newSession, send, deleteSession, regenerate,
       updateTitle,
       uploadPdf,

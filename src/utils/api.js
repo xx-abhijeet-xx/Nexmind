@@ -45,7 +45,14 @@ export async function sendMessage(message, history = [], onToken, documentContex
       try {
         const data = JSON.parse(line.slice(6));
 
-        if (data.error) throw new Error(data.error);
+        if (data.error) {
+          if (data.error === "rate_limit_exceeded" && data.usage) {
+            const err = new Error("Rate limit reached. Please wait.");
+            err.usage = data.usage;
+            throw err;
+          }
+          throw new Error(data.error);
+        }
 
         if (data.token) {
           if (onToken) onToken(data.token);

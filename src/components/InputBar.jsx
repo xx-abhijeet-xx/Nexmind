@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '../context/ChatContext';
 import ContextualSuggestions from './ContextualSuggestions';
+import UsageBanner from './UsageBanner';
 import './InputBar.css';
 
 export default function InputBar({ isNewChat }) {
@@ -203,6 +204,7 @@ export default function InputBar({ isNewChat }) {
 
   return (
     <div className="inputbar">
+      <UsageBanner />
       <div className={`input-wrap ${loading ? 'input-wrap--loading' : ''}`}>
         {attachedImage && (
           <div className="input-attachment">
