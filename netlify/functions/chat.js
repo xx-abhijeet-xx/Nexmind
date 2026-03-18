@@ -116,10 +116,14 @@ exports.handler = async (event, context) => {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY);
       const geminiModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: systemPrompt });
 
-      const geminiHistory = history.slice(-6).map((m) => ({
+      let geminiHistory = history.slice(-6).map((m) => ({
         role: m.role === "user" ? "user" : "model",
         parts: [{ text: m.content }],
       }));
+
+      if (geminiHistory.length > 0 && geminiHistory[0].role !== "user") {
+        geminiHistory.shift();
+      }
 
       const chat = geminiModel.startChat({ history: geminiHistory });
       
