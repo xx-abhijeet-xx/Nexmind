@@ -62,11 +62,9 @@ export function ChatProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(initialState.sidebarOpen);
-  const [documentContext, setDocumentContext] = useState(null);
   const [rateLimitStats, setRateLimitStats] = useState(null);
   const [artifactViewerOpen, setArtifactViewerOpen] = useState(false);
   const [artifacts, setArtifacts] = useState([]); // Array of { path, content, language }
-  const clearDocumentContext = useCallback(() => setDocumentContext(null), []);
   
   // Extend activeSession with rate limit data for convenience (optional)
   const activeSession = sessions.find(s => s.id === activeId) || sessions[0];
@@ -108,19 +106,18 @@ export function ChatProvider({ children }) {
 
   const send = useCallback(async (text, options = {}) => {
     const messageText = (text || '').trim();
-    const imageFile = options.imageFile || null;
-    const imagePreview = options.imagePreview || null;
+    const imagesBase64 = options.imagesBase64 || [];
+    const documentContexts = options.documentContexts || [];
 
-    if ((!messageText && !imageFile) || loading) return;
+    if ((!messageText && imagesBase64.length === 0 && documentContexts.length === 0) || loading) return;
     setError(null);
 
     const userMsg = {
       id: uuid(),
       role: 'user',
       content: messageText,
-      imagePreview,
-      imageName: imageFile?.name,
-      documentName: documentContext?.fileName || null,
+      imagesBase64,
+      documentNames: documentContexts.map(d => d.fileName),
       ts: Date.now(),
     };
 
@@ -136,32 +133,7 @@ export function ChatProvider({ children }) {
       });
     }
 
-    if (imageFile) {
-      setLoading(true);
-      try {
-        const result = await sendVisionMessage(messageText, imageFile, activeSession.messages);
-        const aiMsg = {
-          id: uuid(),
-          role: 'assistant',
-          content: result.content,
-          model: result.model,
-          queryType: result.queryType,
-          searchUsed: result.searchUsed,
-          ts: Date.now(),
-        };
 
-        setSessions(prev => prev.map(s =>
-          s.id === activeId
-            ? { ...s, messages: markLastAssistant([...s.messages, aiMsg]) }
-            : s
-        ));
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
 
     // Check if this is a file generation request
     const fileRequest = detectFileRequest(messageText);
@@ -314,11 +286,10 @@ export function ChatProvider({ children }) {
             };
           }));
         },
-        documentContext,
+        options.documentContexts || [],
+        options.modelId || 'llama-3.3-70b-versatile',
+        options.imagesBase64 || []
       );
-
-      // Clear the document context after it has been used
-      if (documentContext) clearDocumentContext();
 
       setSessions(prev => prev.map(s => {
         if (s.id !== activeId) return s;
@@ -343,7 +314,7 @@ export function ChatProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [activeId, activeSession, loading, updateTitle, documentContext, clearDocumentContext]);
+  }, [activeId, activeSession, loading, updateTitle]);
 
   const regenerate = useCallback(async () => {
     if (loading) return;
@@ -388,8 +359,6 @@ export function ChatProvider({ children }) {
       sessions, activeId, setActiveId,
       activeSession, loading, error, setError,
       sidebarOpen, setSidebarOpen,
-      documentContext, setDocumentContext,
-      clearDocumentContext,
       rateLimitStats, setRateLimitStats,
       newSession, send, deleteSession, regenerate,
       updateTitle,

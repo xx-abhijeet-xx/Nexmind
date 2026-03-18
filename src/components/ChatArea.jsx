@@ -27,7 +27,7 @@ export default function ChatArea() {
   const isNewChat = activeSession.messages.length === 0;
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [activeSession.messages, loading]);
 
   const copyConversation = () => {
@@ -87,7 +87,12 @@ export default function ChatArea() {
       )}
 
       <div className="chat-messages">
-        {!isNewChat && activeSession.messages.map(msg => <Message key={msg.id} msg={msg} />)}
+        {!isNewChat && activeSession.messages.map(msg => {
+          if (msg.role === 'assistant' && msg.content === '' && msg.streaming) {
+            return <TypingIndicator key={msg.id} />;
+          }
+          return <Message key={msg.id} msg={msg} />;
+        })}
         {loading && activeSession.messages[activeSession.messages.length - 1]?.role !== 'assistant' && (
           <TypingIndicator />
         )}

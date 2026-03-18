@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 const USER_ID = process.env.REACT_APP_USER_ID || 'Guest';
@@ -12,12 +13,9 @@ async function getAuthHeaders() {
   return { Authorization: `Bearer ${session.access_token}` };
 }
 
-export async function sendMessage(message, history = [], onToken, documentContext = null) {
+export async function sendMessage(message, history = [], onToken, documentContexts = [], modelId = 'llama-3.3-70b-versatile', imagesBase64 = []) {
   const auth = await getAuthHeaders();
-  const body = { message, userId: USER_ID, history };
-  if (documentContext) {
-    body.documentContext = documentContext;
-  }
+  const body = { message, userId: USER_ID, history, modelId, documentContexts, imagesBase64 };
   const res = await fetch(`${API_URL}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...auth },
@@ -25,53 +23,65 @@ export async function sendMessage(message, history = [], onToken, documentContex
   });
 
   if (!res.ok) {
+    if (res.status === 429) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Rate limit reached. Please select a different model.');
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error(err.details || err.error || 'Request failed');
   }
 
   const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let metadata = {};
+  const decoder = new TextDecoder("utf-8");
+  let buffer = '';
+  
+  let finalModelUsed = modelId;
+  let finalQueryType = '';
+  let finalToolsUsed = false;
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
-    const chunk = decoder.decode(value);
-    const lines = chunk.split('\n');
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop(); // Keep incomplete line
 
     for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      try {
-        const data = JSON.parse(line.slice(6));
-
-        if (data.error) {
-          if (data.error === "rate_limit_exceeded" && data.usage) {
-            const err = new Error("Rate limit reached. Please wait.");
-            err.usage = data.usage;
-            throw err;
+      if (line.startsWith('data: ')) {
+        const dataStr = line.slice(6).trim();
+        if (!dataStr) continue;
+        
+        try {
+          const data = JSON.parse(dataStr);
+          if (data.error) {
+            throw new Error(data.error);
           }
-          throw new Error(data.error);
+          if (data.done) {
+            finalModelUsed = data.modelUsed || finalModelUsed;
+            finalQueryType = data.queryType || finalQueryType;
+            finalToolsUsed = data.toolsUsed || finalToolsUsed;
+            continue;
+          }
+          if (data.content && onToken) {
+            onToken(data.content);
+          }
+        } catch (e) {
+          if (e.message !== "Unexpected end of JSON input") {
+             // throw out if it is an actual API error we extracted
+             if (dataStr.includes("error\":")) { throw e; }
+          }
         }
-
-        if (data.token) {
-          if (onToken) onToken(data.token);
-        }
-
-        if (data.done) {
-          metadata = {
-            model: data.model,
-            queryType: data.queryType,
-            searchUsed: data.searchUsed,
-          };
-        }
-      } catch (e) {
-        if (e.message !== 'Unexpected end of JSON input') throw e;
       }
     }
   }
 
-  return metadata;
+  return {
+    model: finalModelUsed,
+    queryType: finalQueryType,
+    searchUsed: false,
+    toolsUsed: finalToolsUsed
+  };
 }
 
 export async function sendVisionMessage(message, imageFile, history = []) {
@@ -245,21 +255,25 @@ export function getFileMimeType(fileType) {
  * @param {File} file - The PDF File object
  * @returns {Promise<{ fileName: string, pageCount: number, chunkCount: number, chunks: string[] }>}
  */
-export async function uploadPdf(file) {
+export async function uploadPdf(file, onProgress, abortSignal) {
   const auth = await getAuthHeaders();
   const formData = new FormData();
   formData.append('pdf', file);
 
-  const res = await fetch(`${API_URL}/upload`, {
-    method: 'POST',
-    headers: { ...auth },
-    body: formData,
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.details || err.error || 'PDF upload failed');
+  try {
+    const res = await axios.post(`${API_URL}/upload`, formData, {
+      headers: { ...auth, 'Content-Type': 'multipart/form-data' },
+      signal: abortSignal,
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percentCompleted);
+        }
+      }
+    });
+    return res.data;
+  } catch (err) {
+    const errorMsg = err.response?.data?.details || err.response?.data?.error || 'PDF upload failed';
+    throw new Error(errorMsg);
   }
-
-  return res.json();
 }

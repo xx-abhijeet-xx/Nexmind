@@ -1,19 +1,71 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '../context/ChatContext';
+import { X, FileText, Image as ImageIcon, File as GenericFile } from 'lucide-react';
 import ContextualSuggestions from './ContextualSuggestions';
 import UsageBanner from './UsageBanner';
 import './InputBar.css';
 
+import { v4 as uuid } from 'uuid';
+
+const getFileIcon = (type) => {
+  if (type.startsWith('image/')) return <ImageIcon size={20} color="#a0a0a8" />;
+  if (type === 'application/pdf') return <FileText size={20} color="#ff4d4f" />;
+  return <GenericFile size={20} color="#a0a0a8" />;
+};
+
+const AttachmentPreview = ({ name, type, previewUrl, progress, onRemove }) => {
+  const isImage = type.startsWith('image/');
+  
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  return (
+    <div className="attachment-preview group" aria-label={name}>
+      <div className="attachment-preview__content">
+        {isImage && previewUrl ? (
+          <img src={previewUrl} alt={name} className="attachment-preview__thumb" />
+        ) : (
+          <div className="attachment-preview__iconBox">
+            {getFileIcon(type)}
+          </div>
+        )}
+        <div className="attachment-preview__details">
+          <span className="attachment-preview__name">{name}</span>
+          <span className="attachment-preview__type">{isImage ? 'IMAGE' : type === 'application/pdf' ? 'PDF' : 'FILE'}</span>
+        </div>
+      </div>
+      
+      {progress !== undefined && progress < 100 && (
+        <div className="attachment-preview__progress-container">
+          <div className="attachment-preview__progress-fill" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+
+      <button className="attachment-preview__remove" onClick={onRemove} title="Remove or Cancel">
+        <X size={14} />
+      </button>
+      
+      <div className="attachment-preview__tooltip">
+        {name}
+      </div>
+    </div>
+  );
+};
+
 export default function InputBar({ isNewChat }) {
-  const { send, loading, setError, documentContext, setDocumentContext, clearDocumentContext, uploadPdf } = useChat();
+  const { send, loading, setError, uploadPdf } = useChat();
   const [text, setText] = useState('');
-  const [attachedImage, setAttachedImage] = useState(null);
+  const [attachments, setAttachments] = useState([]); // [{ id, type, file, name, previewUrl, progress, cancelSource, documentContext }]
+  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [listening, setListening] = useState(false);
-  const [pdfUploading, setPdfUploading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const pdfInputRef = useRef(null);
+  const attachmentInputRef = useRef(null);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
@@ -33,22 +85,28 @@ export default function InputBar({ isNewChat }) {
 
   const handleSend = () => {
     const trimmed = text.trim();
-    if ((!trimmed && !attachedImage) || loading) return;
+    if ((!trimmed && attachments.length === 0) || loading) return;
+
+    // Check if any attachments are still uploading
+    if (attachments.some(a => a.type === 'application/pdf' && a.progress < 100 && !a.documentContext)) {
+      setError('Please wait for uploads to finish.');
+      return;
+    }
 
     send(trimmed, {
-      imageFile: attachedImage?.file,
-      imagePreview: attachedImage?.preview,
+      imagesBase64: attachments.filter(a => a.type.startsWith('image/')).map(a => a.previewUrl),
+      documentContexts: attachments.filter(a => a.documentContext).map(a => a.documentContext),
+      modelId: selectedModel
     });
     setText('');
-    setAttachedImage(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setAttachments([]);
+    if (attachmentInputRef.current) attachmentInputRef.current.value = '';
   };
 
   const handleSuggestionSelect = (suggestion) => {
     setText(suggestion + ': ');
     textareaRef.current?.focus();
   };
-
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -57,54 +115,57 @@ export default function InputBar({ isNewChat }) {
     }
   };
 
-  const openImagePicker = () => {
-    if (!loading) fileInputRef.current?.click();
+  const openAttachmentPicker = () => {
+    if (!loading) attachmentInputRef.current?.click();
   };
 
-  const onSelectImage = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) return;
+  const onSelectAttachment = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAttachedImage({
-        file,
-        name: file.name,
-        preview: String(reader.result || ''),
-      });
-    };
-    reader.readAsDataURL(file);
+    files.forEach(file => {
+      const id = uuid();
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setAttachments(prev => [...prev, { id, type: file.type, file, name: file.name, previewUrl: reader.result, progress: 100 }]);
+        };
+        reader.readAsDataURL(file);
+      } else if (file.type === 'application/pdf') {
+        const cancelSource = new AbortController();
+        const previewUrl = URL.createObjectURL(file);
+        
+        setAttachments(prev => [...prev, { id, type: file.type, file, name: file.name, previewUrl, progress: 0, cancelSource }]);
+        setError(null);
+        
+        uploadPdf(file, (prog) => {
+          setAttachments(prev => prev.map(a => a.id === id ? { ...a, progress: prog } : a));
+        }, cancelSource.signal)
+          .then(result => {
+            setAttachments(prev => prev.map(a => a.id === id ? { ...a, documentContext: result, progress: 100 } : a));
+          })
+          .catch(err => {
+            if (err.message !== 'canceled') {
+              setError(err.message || 'PDF upload failed');
+            }
+            setAttachments(prev => prev.filter(a => a.id !== id));
+          });
+      } else {
+        setError(`Unsupported file type: ${file.name}`);
+      }
+    });
+
+    if (attachmentInputRef.current) attachmentInputRef.current.value = '';
   };
 
-  const clearImage = () => {
-    setAttachedImage(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const openPdfPicker = () => {
-    if (!loading && !pdfUploading) pdfInputRef.current?.click();
-  };
-
-  const onSelectPdf = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== 'application/pdf') {
-      setError('Only PDF files are supported');
-      return;
-    }
-
-    setPdfUploading(true);
-    setError(null);
-    try {
-      const result = await uploadPdf(file);
-      setDocumentContext(result);
-    } catch (err) {
-      setError(err.message || 'PDF upload failed');
-    } finally {
-      setPdfUploading(false);
-      if (pdfInputRef.current) pdfInputRef.current.value = '';
-    }
+  const removeAttachment = (id) => {
+    setAttachments(prev => {
+      const attachment = prev.find(a => a.id === id);
+      if (attachment?.cancelSource) {
+        attachment.cancelSource.abort();
+      }
+      return prev.filter(a => a.id !== id);
+    });
   };
 
   const stopVoice = () => {
@@ -206,13 +267,18 @@ export default function InputBar({ isNewChat }) {
     <div className="inputbar">
       <UsageBanner />
       <div className={`input-wrap ${loading ? 'input-wrap--loading' : ''}`}>
-        {attachedImage && (
-          <div className="input-attachment">
-            <img src={attachedImage.preview} alt={attachedImage.name} className="input-attachment__thumb" loading="lazy" decoding="async" />
-            <span className="input-attachment__name">{attachedImage.name}</span>
-            <button className="input-attachment__remove" type="button" onClick={clearImage} title="Remove image" aria-label="Remove attached image">
-              ✕
-            </button>
+        {attachments.length > 0 && (
+          <div className="attachments-row">
+            {attachments.map(att => (
+              <AttachmentPreview 
+                key={att.id}
+                type={att.type} 
+                name={att.name} 
+                previewUrl={att.previewUrl} 
+                progress={att.progress} 
+                onRemove={() => removeAttachment(att.id)} 
+              />
+            ))}
           </div>
         )}
         <textarea
@@ -228,80 +294,48 @@ export default function InputBar({ isNewChat }) {
           rows={1}
           disabled={loading}
         />
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={onSelectImage}
-          className="visually-hidden"
-        />
-        <input
-          ref={pdfInputRef}
-          type="file"
-          accept="application/pdf"
-          onChange={onSelectPdf}
-          className="visually-hidden"
-        />
-        <div className="input-bottom">
-          <div className="input-left">
-            <button
-              className="input-icon-btn"
-              type="button"
-              title="Attach image"
-              onClick={openImagePicker}
-              disabled={loading}
-              aria-label="Attach image"
-            >
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
-                <path d="M13 7L7.5 12.5a4 4 0 01-5.5-5.5l6-6a2.5 2.5 0 013.5 3.5L5 10a1 1 0 01-1.5-1.5L9 3"/>
-              </svg>
-            </button>
-            <button
-              className={`input-icon-btn ${documentContext ? 'input-icon-btn--active' : ''}`}
-              type="button"
-              title="Upload PDF"
-              onClick={openPdfPicker}
-              disabled={loading || pdfUploading}
-              aria-label="Upload PDF"
-            >
-              {pdfUploading ? (
-                <div className="spinner" style={{ width: 12, height: 12, borderWidth: 1.5 }} />
-              ) : (
+          <input
+            ref={attachmentInputRef}
+            type="file"
+            multiple
+            accept="image/*,application/pdf"
+            onChange={onSelectAttachment}
+            className="visually-hidden"
+          />
+          <div className="input-bottom">
+            <div className="input-left">
+              <button
+                className={`input-icon-btn ${attachments.length > 0 ? 'input-icon-btn--active' : ''}`}
+                type="button"
+                title="Attach Files (Images/PDFs)"
+                onClick={openAttachmentPicker}
+                disabled={loading}
+                aria-label="Attach Files"
+              >
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
-                  <path d="M9 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6L9 2z"/>
-                  <polyline points="9,2 9,6 13,6"/>
-                  <line x1="5" y1="9" x2="11" y2="9"/>
-                  <line x1="5" y1="11.5" x2="9" y2="11.5"/>
+                  <line x1="8" y1="2" x2="8" y2="14"/>
+                  <line x1="2" y1="8" x2="14" y2="8"/>
                 </svg>
-              )}
-            </button>
-            {documentContext && (
-              <div className="pdf-indicator">
-                <span className="pdf-indicator__name">{documentContext.fileName}</span>
-                <button
-                  className="pdf-indicator__clear"
-                  type="button"
-                  onClick={clearDocumentContext}
-                  title="Remove document"
-                  aria-label="Remove uploaded document"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-          </div>
+              </button>
+            </div>
           <div className="input-right">
-            <button className="model-btn" type="button" aria-label="Selected model" style={{padding:'0.2vw', fontSize:'0.8vw', fontWeight:'bold', borderRadius:'5px', border:'none', backgroundColor:'transparent', color:'white'}}>
-              Llama 3.3 70B
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="11" height="11">
-                <polyline points="4,6 8,10 12,6"/>
-              </svg>
-            </button>
+            <select
+              className="model-select"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              aria-label="Selected model"
+              disabled={loading}
+              style={{ paddingLeft: '8px', paddingRight: '24px', fontSize: '12px', fontWeight: '500', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'transparent', color: 'var(--text-secondary)', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'rgba(255,255,255,0.5)\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")' }}
+            >
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+            </select>
             <button
-              className={`send-btn ${(text.trim() || attachedImage) && !loading ? 'send-btn--active' : ''}`}
+              className={`send-btn ${(text.trim() || attachments.length > 0) && !loading ? 'send-btn--active' : ''}`}
               type="button"
               onClick={handleSend}
-              disabled={(!text.trim() && !attachedImage) || loading}
+              disabled={(!text.trim() && attachments.length === 0) || loading}
               title="Send (Enter)"
               aria-label="Send message"
             >
