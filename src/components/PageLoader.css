@@ -1,0 +1,390 @@
+/* ═══════════════════════════════════════════
+   PageLoader.css  —  Chymera v2
+   src/components/PageLoader.css
+═══════════════════════════════════════════ */
+
+/* ── ROOT SCREEN ── */
+.pl {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0e0e0e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.pl--out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* grid overlay */
+.pl::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(245,158,11,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,158,11,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%);
+}
+
+/* ── CANVAS ── */
+.pl__canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ── GLOW CORE ── */
+.pl__glow {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 380px; height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(245,158,11,0.09) 0%,
+    rgba(220,38,38,0.04) 40%,
+    transparent 70%
+  );
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: plGlowBreath 3s ease-in-out infinite;
+}
+
+@keyframes plGlowBreath {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50%       { transform: translate(-50%, -50%) scale(1.3); }
+}
+
+/* ── ORBIT RINGS ── */
+.pl__orbit {
+  position: absolute;
+  top: 50%; left: 50%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.pl__orbit--outer {
+  width: 280px; height: 280px;
+  margin: -140px 0 0 -140px;
+  border: 1px solid rgba(245,158,11,0.08);
+  animation: plOrbitCW 12s linear infinite;
+}
+.pl__orbit--outer::before {
+  content: '';
+  position: absolute;
+  top: -5px; left: 50%;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 14px rgba(245,158,11,0.9), 0 0 28px rgba(245,158,11,0.4);
+  transform: translateX(-50%);
+}
+.pl__orbit--outer::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 50%;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #fb923c;
+  box-shadow: 0 0 10px rgba(251,146,60,0.7);
+  transform: translateX(-50%);
+}
+
+.pl__orbit--inner {
+  width: 200px; height: 200px;
+  margin: -100px 0 0 -100px;
+  border: 1px solid rgba(220,38,38,0.1);
+  animation: plOrbitCCW 8s linear infinite;
+}
+.pl__orbit--inner::before {
+  content: '';
+  position: absolute;
+  top: 50%; right: -4px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #dc2626;
+  box-shadow: 0 0 12px rgba(220,38,38,0.9);
+  transform: translateY(-50%);
+}
+
+@keyframes plOrbitCW  { from { transform: rotate(0deg);    } to { transform: rotate(360deg);  } }
+@keyframes plOrbitCCW { from { transform: rotate(0deg);    } to { transform: rotate(-360deg); } }
+
+/* ── SWEEP LINE ── */
+.pl__sweep {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(245,158,11,0.18), transparent);
+  pointer-events: none;
+  animation: plSweep 5s ease-in-out infinite;
+}
+
+@keyframes plSweep {
+  0%   { top: 5%;  opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { top: 95%; opacity: 0; }
+}
+
+/* ── CORNER BRACKETS ── */
+.pl__br {
+  position: absolute;
+  width: 0; height: 0;
+  opacity: 0;
+  animation: plBracketIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.pl__br--tl { top: 28px; left: 28px;  border-top:    1px solid rgba(245,158,11,0.55); border-left:   1px solid rgba(245,158,11,0.55); animation-delay: 0s;    }
+.pl__br--tr { top: 28px; right: 28px; border-top:    1px solid rgba(245,158,11,0.55); border-right:  1px solid rgba(245,158,11,0.55); animation-delay: 0.08s; }
+.pl__br--bl { bottom: 28px; left: 28px;  border-bottom: 1px solid rgba(245,158,11,0.55); border-left:   1px solid rgba(245,158,11,0.55); animation-delay: 0.08s; }
+.pl__br--br { bottom: 28px; right: 28px; border-bottom: 1px solid rgba(245,158,11,0.55); border-right:  1px solid rgba(245,158,11,0.55); animation-delay: 0s;    }
+
+@keyframes plBracketIn {
+  from { width: 0;    height: 0;    opacity: 0; }
+  to   { width: 26px; height: 26px; opacity: 1; }
+}
+
+/* ── SIDE DATA LABELS ── */
+.pl__data {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  list-style: none;
+  padding: 0; margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: monospace;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #222230;
+}
+
+.pl__data--left  { left: 32px;  align-items: flex-start; }
+.pl__data--right { right: 32px; align-items: flex-end;   }
+
+.pl__data-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  opacity: 0;
+  animation: plDataL 0.4s ease both;
+}
+
+.pl__data--right .pl__data-line {
+  animation-name: plDataR;
+}
+
+@keyframes plDataL { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes plDataR { from { opacity: 0; transform: translateX(8px);  } to { opacity: 1; transform: translateX(0); } }
+
+.pl__data-dot {
+  display: inline-block;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: #f59e0b;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* ── CENTRE CONTENT ── */
+.pl__center {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+}
+
+/* ── MORPHING DIAMOND ── */
+.pl__diamond-wrap {
+  position: relative;
+  width: 72px; height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pl__diamond {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, #f59e0b, #fb923c);
+  transform: rotate(45deg);
+  animation: plDiamondMorph 2.2s ease-in-out infinite;
+  box-shadow:
+    0 0 20px rgba(245,158,11,0.55),
+    0 0 60px rgba(245,158,11,0.15);
+}
+
+.pl__diamond::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: inherit;
+  animation: plDiamondRing1 2.2s ease-in-out infinite;
+}
+
+.pl__diamond::after {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  border: 1px solid rgba(245,158,11,0.14);
+  border-radius: inherit;
+  animation: plDiamondRing2 2.2s ease-in-out 0.2s infinite;
+}
+
+@keyframes plDiamondMorph {
+  0%, 100% { transform: rotate(45deg)  scale(1);    border-radius: 4px; }
+  25%       { transform: rotate(90deg)  scale(0.85); border-radius: 50%; }
+  50%       { transform: rotate(135deg) scale(1.1);  border-radius: 2px; }
+  75%       { transform: rotate(180deg) scale(0.9);  border-radius: 30%; }
+}
+@keyframes plDiamondRing1 {
+  0%, 100% { transform: rotate(0deg)   scale(1);   opacity: 0.4; }
+  50%       { transform: rotate(-45deg) scale(1.5); opacity: 0.08; }
+}
+@keyframes plDiamondRing2 {
+  0%, 100% { transform: rotate(0deg)  scale(1);   opacity: 0.2; }
+  50%       { transform: rotate(45deg) scale(1.7); opacity: 0; }
+}
+
+/* ── WORDMARK ── */
+.pl__word-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pl__word {
+  display: flex;
+  gap: 0;
+  align-items: baseline;
+}
+
+.pl__ch {
+  font-family: 'Instrument Serif', 'Georgia', serif;
+  font-size: 28px;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 5px;
+  color: #f5f5f0;
+  display: inline-block;
+  opacity: 0;
+  animation: plCharReveal 0.6s cubic-bezier(0.2, 0.8, 0.4, 1) both;
+}
+
+.pl__ch[data-accent='true'] {
+  color: #f59e0b;
+}
+
+@keyframes plCharReveal {
+  from { opacity: 0; transform: translateY(16px) skewX(-8deg); }
+  to   { opacity: 1; transform: translateY(0)    skewX(0deg);  }
+}
+
+/* self-drawing underline */
+.pl__underline {
+  width: 180px;
+  height: 1px;
+  position: relative;
+  overflow: hidden;
+}
+.pl__underline::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  height: 1px;
+  width: 0%;
+  background: linear-gradient(to right, transparent, #f59e0b 30%, #fb923c 70%, transparent);
+  animation: plLineDraw 0.8s 0.92s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes plLineDraw { from { width: 0%; } to { width: 100%; } }
+
+/* tagline */
+.pl__tagline {
+  font-family: monospace;
+  font-size: 8px;
+  letter-spacing: 4px;
+  color: #333340;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: plTagFade 0.6s 1.5s ease both;
+}
+@keyframes plTagFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── PROGRESS BAR ── */
+.pl__prog-wrap {
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.pl__prog-track {
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 1px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pl__prog-fill {
+  height: 100%;
+  border-radius: 1px;
+  background: linear-gradient(to right, #dc2626, #f59e0b, #fb923c);
+  box-shadow: 0 0 8px rgba(245,158,11,0.4);
+  animation: plProgFill 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes plProgFill {
+  0%   { width: 0%;  margin-left: 0%;   }
+  50%  { width: 70%; margin-left: 0%;   }
+  80%  { width: 20%; margin-left: 80%;  }
+  100% { width: 0%;  margin-left: 100%; }
+}
+
+.pl__prog-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #2a2a38;
+  text-transform: uppercase;
+}
+
+.pl__prog-pct {
+  color: #f59e0b;
+  opacity: 0.6;
+  animation: plPctPulse 2.4s ease-in-out infinite;
+}
+@keyframes plPctPulse {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.9; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .pl__data { display: none; }
+  .pl__orbit--outer { width: 220px; height: 220px; margin: -110px 0 0 -110px; }
+  .pl__orbit--inner { width: 160px; height: 160px; margin: -80px 0 0 -80px;  }
+  .pl__br--tl, .pl__br--tr { top: 20px; }
+  .pl__br--bl, .pl__br--br { bottom: 20px; }
+  .pl__br--tl, .pl__br--bl { left: 20px; }
+  .pl__br--tr, .pl__br--br { right: 20px; }
+}

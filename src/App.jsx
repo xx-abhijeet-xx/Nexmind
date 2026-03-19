@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ChatProvider } from './context/ChatContext';
 import WorkspaceLayout from './components/WorkspaceLayout';
 import PhoneCapture from './components/auth/PhoneCapture';
 import Landing from './pages/Landing';
+import PageLoader from './components/PageLoader';
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -22,8 +23,7 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/" replace />;
   }
 
-  // Google OAuth Schema Fallback
-  // Intercept users who lack the mandatory phone field before letting them into the App
+  // Google OAuth users who haven't supplied a phone yet
   const hasPhone = user.phone || user.user_metadata?.phone;
   if (!hasPhone) {
     return <PhoneCapture onComplete={() => window.location.reload()} />;
@@ -37,18 +37,21 @@ function ProtectedRoute({ children }) {
 }
 
 export default function App() {
+  const [showLoader, setShowLoader] = useState(true);
+
   return (
     <AuthProvider>
+      {showLoader && <PageLoader onComplete={() => setShowLoader(false)} />}
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route 
-            path="/chat" 
+          <Route
+            path="/chat/*"
             element={
               <ProtectedRoute>
                 <WorkspaceLayout />
               </ProtectedRoute>
-            } 
+            }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

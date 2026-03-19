@@ -16,70 +16,47 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
 
-    // Listen for auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-      }
-    );
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      // Ensure loading is cleared on any auth event
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  /**
-   * Sign up with email & password.
-   * After creation the user is auto-logged-in by Supabase.
-   */
   const signUp = async (email, password) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
     return data;
   };
 
-  /**
-   * Sign in with email & password.
-   */
   const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     return data;
   };
 
-  /**
-   * Sign out the current user.
-   */
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
 
-  /**
-   * Sign in with Google (OAuth)
-   */
   const signInWithGoogle = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
-      }
+        // Use /chat as the redirect so Google OAuth users land directly in the app
+        redirectTo: `${window.location.origin}/chat`,
+      },
     });
     if (error) throw error;
     return data;
   };
 
-  const value = {
-    user,
-    session,
-    loading,
-    signUp,
-    signIn,
-    signInWithGoogle,
-    signOut,
-  };
+  const value = { user, session, loading, signUp, signIn, signInWithGoogle, signOut };
 
   return (
     <AuthContext.Provider value={value}>
