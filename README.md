@@ -1,699 +1,293 @@
 # Chymera — AI Assistant Platform
 
-> Production-grade, browser-based AI assistant with real-time streaming, multi-provider routing, live web search, persistent memory, vision understanding, PDF analysis, voice input, and artifact generation. Built with React + Node.js + Express, deployed on Netlify (frontend) and Railway (backend).
+> Production-grade AI assistant with real-time streaming, live web search, persistent memory, vision, and document understanding.
 
----
-
-## Live Demo
-
-| Environment | URL |
-|---|---|
-| Frontend | [chymera.netlify.app](https://chymera.netlify.app) |
-| Backend API | Railway (always-on) |
-
----
-
-## What is Chymera?
-
-Chymera is a self-hosted AI assistant platform that rivals commercial tools like ChatGPT and Claude — built entirely with open-source models and free-tier APIs. It classifies every query automatically and routes it to the best available model, giving you the right intelligence for every task without switching apps.
-
-The name comes from the Chimera — the mythological beast fused from multiple creatures. Chymera is the same concept applied to AI: multiple models, search engines, memory systems, and document processors fused into one seamless interface.
-
----
-
-## Features
-
-| Feature | Description |
-|---|---|
-| **Streaming responses** | Token-by-token SSE delivery — words appear as the model thinks them |
-| **Multi-model routing** | Automatically routes to Gemini 1.5 Pro, Groq Llama 3.3, or Gemini 2.5 Flash based on query type |
-| **Live web search** | Tavily API injects real-time internet results before generation |
-| **Persistent memory** | Mem0 remembers your preferences, stack, and projects across sessions |
-| **Image vision** | Upload JPG/PNG/WebP — Gemini analyzes screenshots, UI designs, code photos |
-| **PDF analysis** | Upload documents — chunked via LangChain, deep Q&A via Gemini |
-| **Voice input** | Native Web Speech API — dictate prompts directly |
-| **Artifact viewer** | AI-generated files (code, markdown, HTML) open in a side panel |
-| **File generation** | Generate and download .md, .txt, .js, .jsx, .html, .css, .json files |
-| **Smart routing** | Query classifier detects coding / reasoning / search / general intent |
-| **Auto-title** | AI generates a descriptive conversation title from the first message |
-| **Regenerate** | One click to get a fresh response |
-| **Multi-session** | Create and switch between unlimited conversations |
-| **Conversation export** | Download any conversation as a .txt file |
-| **Usage tracking** | Per-user rate limiting and tier system via Supabase |
-| **Auth** | Email/password + Google OAuth via Supabase |
-| **Mobile responsive** | Full functionality on any screen size |
+**Live:** https://chymera.vercel.app
+**Backend:** Deployed on Railway
+**Author:** Abhijeet Verma — [github.com/xx-abhijeet-xx](https://github.com/xx-abhijeet-xx)
 
 ---
 
 ## Architecture
 
 ```
-Browser (React — Netlify)
-         │
-         │ HTTPS + Supabase JWT
-         ▼
-┌─────────────────────────────────────────────┐
-│         Express Backend (Railway)            │
-│                                             │
-│  POST /chat ──────────────► Model Router    │
-│                                │            │
-│                    ┌───────────┼──────────┐ │
-│                    ▼           ▼          ▼ │
-│             Gemini 1.5    Groq Llama   Gemini│
-│             Pro (vision   3.3 70B      2.5   │
-│             + docs)       (general)   Flash  │
-│                                             │
-│  POST /chat + imagesBase64 ──► Gemini Vision│
-│  POST /upload ──────────────► PDF Processor │
-│  POST /chat/title ──────────► Title Gen     │
-│  POST /chat/generate-file ──► File Gen      │
-│                                             │
-│  Cross-cutting:                             │
-│    Tavily ──── web search injection         │
-│    Mem0 ─────  memory recall + save         │
-│    Supabase ── JWT auth + user profiles     │
-└─────────────────────────────────────────────┘
-
-Netlify Functions (Production — mirrors Express routes):
-  /.netlify/functions/chat    → chat.js
-  /.netlify/functions/upload  → upload.js
-```
-
-### Query Routing Logic
-
-```
-User sends message
-        │
-        ▼
-  classifyQuery() — utils/classifier.js
-        │
-        ├─ "code/bug/function/debug/fix/implement" ──► Groq Llama 3.3
-        ├─ "news/latest/today/current/2025/2026" ────► Groq + Tavily
-        ├─ "calculate/solve/math/formula/compute" ───► Groq Llama (qwen fallback)
-        └─ everything else ──────────────────────────► Groq Llama 3.3
-
-  modelId override from frontend:
-        ├─ "gemini-1.5-pro" ──────────────────────────► Google Gemini
-        ├─ "gemini-2.5-flash" ────────────────────────► Google Gemini
-        └─ "llama-3.3-70b-versatile" ────────────────► Groq
+┌─────────────────────────────────────┐     ┌──────────────────────────────────┐
+│        Frontend (Vercel)            │     │       Backend (Railway)          │
+│        Nexmind-main/                │────▶│     my-ai-assistant-main/        │
+│                                     │     │                                  │
+│  React 18 + React Router v7         │     │  Node.js + Express 5             │
+│  Supabase Auth (JWT)                │     │  Groq SDK (Llama 3.3 / Qwen)     │
+│  SSE streaming consumer             │     │  Google Generative AI (Gemini)   │
+│  react-markdown + syntax highlight  │     │  Tavily web search               │
+│  lucide-react icons                 │     │  Mem0 persistent memory          │
+│  axios (PDF upload only)            │     │  Supabase JWT verification       │
+└─────────────────────────────────────┘     └──────────────────────────────────┘
 ```
 
 ---
 
-## Tech Stack
-
-### Backend
-| Technology | Version | Purpose |
-|---|---|---|
-| Node.js | 20+ | Runtime |
-| Express | 5.x | REST API + SSE streaming |
-| Groq SDK | 0.3.x | Llama 3.3 70B inference |
-| Google Generative AI | 0.24.x | Gemini 1.5 Pro + 2.5 Flash |
-| Tavily Core | 0.7.x | Real-time web search |
-| Mem0 AI | 2.4.x | Persistent cross-session memory |
-| LangChain TextSplitters | 1.0.x | PDF chunking for RAG |
-| Supabase JS | 2.x | JWT auth verification |
-| Multer | 2.x | File upload handling |
-| pdf-extraction | 1.0.x | PDF text extraction |
-| CORS | 2.8.x | Cross-origin headers |
-
-### Frontend
-| Technology | Version | Purpose |
-|---|---|---|
-| React | 18.x | UI framework |
-| React Router DOM | 7.x | Client-side routing |
-| React Markdown | 9.x | Render AI markdown |
-| React Syntax Highlighter | 15.x | Code block highlighting |
-| Lucide React | 0.577.x | Icon system |
-| Supabase JS | 2.x | Auth + session management |
-| Axios | 1.x | HTTP client + upload progress |
-| UUID | 9.x | Session/message IDs |
-| JSZip + file-saver | - | File downloads |
-
-### Infrastructure
-| Technology | Purpose |
-|---|---|
-| Railway | Backend hosting (always-on) |
-| Netlify | Frontend hosting + serverless functions |
-| Supabase | Auth, user profiles, usage tracking |
-| GitHub | Source control + CI/CD |
-
----
-
-## Project Structure
+## Repository Structure
 
 ```
-my-ai-assistant/                ← Express Backend (Railway)
-├── server.js                   ← Entry point, CORS, route mounting
-├── routes/
-│   ├── chat.js                 ← All AI endpoints (main, title, vision, file gen)
-│   ├── auth.routes.js          ← Supabase auth wrappers
-│   └── upload.routes.js        ← PDF upload endpoint
-├── controllers/
-│   └── upload.controller.js    ← PDF processing logic
-├── middleware/
-│   └── auth.middleware.js      ← Supabase JWT verification
-├── utils/
-│   ├── classifier.js           ← Query intent detection
-│   ├── systemPrompt.js         ← AI personality + coding standards
-│   ├── tools.js                ← Wikipedia + GitHub tool definitions
-│   └── documentProcessor.js   ← LangChain PDF chunker
-├── config/
-│   └── supabase.js             ← Supabase admin client
-├── Procfile                    ← Railway start command
-└── package.json
-
-nexmind/ (Chymera Frontend)     ← React App (Netlify)
-├── netlify.toml                ← Build config + function bundling
-├── netlify/
-│   └── functions/
-│       ├── chat.js             ← Serverless mirror of Express /chat
-│       └── upload.js           ← Serverless mirror of Express /upload
-└── src/
-    ├── App.jsx                 ← Routing + auth protection
-    ├── App.css
-    ├── index.js
-    ├── index.css               ← Global dark theme variables
-    ├── Assets/
-    │   ├── chymera-logo.svg    ← Demon eye logo
-    │   ├── image.png
-    │   └── image2.png
-    ├── config/
-    │   └── supabase.js         ← Supabase client init
-    ├── context/
-    │   ├── AuthContext.jsx     ← Auth state + signIn/signUp/Google OAuth
-    │   └── ChatContext.jsx     ← Sessions, messages, streaming, artifacts
-    ├── pages/
-    │   ├── Landing.jsx         ← Landing page with auth card
-    │   └── Landing.css
-    ├── components/
-    │   ├── WorkspaceLayout.jsx ← Main app shell
-    │   ├── Sidebar.jsx         ← Session history + navigation
-    │   ├── ChatArea.jsx        ← Message list + topbar
-    │   ├── Message.jsx         ← Individual message with markdown
-    │   ├── InputBar.jsx        ← Text/voice/file input + model picker
-    │   ├── ArtifactViewer.jsx  ← Side panel for generated files
-    │   ├── FileGenerator.jsx   ← Downloadable file generation
-    │   ├── ContextualSuggestions.jsx
-    │   ├── RecentsPage.jsx
-    │   ├── UsageBanner.jsx
-    │   └── ChatDropdownMenu.jsx
-    │   └── landing/
-    │       ├── AuthCard.jsx    ← Login/Register/Username flow
-    │       ├── ChatDemo.jsx    ← Animated chat preview
-    │       ├── AboutScroll.jsx ← Horizontal scroll cards
-    │       ├── Capabilities.jsx← Timeline + preview panel
-    │       └── LandingFooter.jsx
-    │   └── auth/
-    │       ├── PhoneCapture.jsx← Google OAuth phone fallback
-    │       └── Auth.css
-    └── utils/
-        └── api.js              ← All API calls + SSE parser
-```
-
----
-
-## API Reference
-
-### POST /chat
-
-Send a message and receive a streaming SSE response.
-
-**Headers:**
-```
-Authorization: Bearer <supabase_jwt>
-Content-Type: application/json
-```
-
-**Request:**
-```json
-{
-  "message": "How do I fix a memory leak in React?",
-  "history": [
-    { "role": "user", "content": "previous message" },
-    { "role": "assistant", "content": "previous response" }
-  ],
-  "modelId": "llama-3.3-70b-versatile",
-  "documentContexts": [
-    {
-      "fileName": "docs.pdf",
-      "chunks": ["chunk 1 text...", "chunk 2 text..."]
-    }
-  ],
-  "imagesBase64": ["data:image/png;base64,..."]
-}
-```
-
-**Response:** `text/event-stream`
-```
-data: {"content": "The"}
-data: {"content": " issue"}
-data: {"content": " is caused by..."}
-data: {"done": true, "modelUsed": "llama-3.3-70b-versatile", "queryType": "coding", "toolsUsed": false}
-```
-
----
-
-### POST /upload
-
-Upload a PDF and receive extracted text chunks for RAG.
-
-**Headers:**
-```
-Authorization: Bearer <supabase_jwt>
-Content-Type: application/json
-```
-
-**Request:**
-```json
-{
-  "pdfBase64": "<base64 encoded PDF>",
-  "fileName": "document.pdf"
-}
-```
-
-**Response:**
-```json
-{
-  "fileName": "document.pdf",
-  "pageCount": 42,
-  "chunkCount": 87,
-  "chunks": ["chunk 1...", "chunk 2...", "..."]
-}
-```
-
----
-
-### POST /chat/title
-
-Generate a short title from the first message of a conversation.
-
-**Request:**
-```json
-{ "message": "How do I implement JWT auth in Spring Boot?" }
-```
-
-**Response:**
-```json
-{ "title": "JWT Auth Spring Boot" }
-```
-
----
-
-### POST /chat/generate-file
-
-Generate a downloadable file from a prompt.
-
-**Request:**
-```json
-{
-  "prompt": "A React component for a login form with validation",
-  "fileType": "jsx",
-  "fileName": "LoginForm.jsx"
-}
-```
-
-**Response:**
-```json
-{
-  "content": "import React...",
-  "fileName": "LoginForm.jsx",
-  "fileType": "jsx"
-}
-```
-
-Supported file types: `md`, `txt`, `js`, `jsx`, `html`, `css`, `json`, `jsonl`
-
----
-
-### GET /
-
-Health check.
-
-**Response:**
-```json
-{
-  "status": "running",
-  "message": "AI Assistant API is live"
-}
+Nexmind-main/                          my-ai-assistant-main/
+├── public/                            ├── config/
+│   ├── index.html                     │   └── supabase.js
+│   ├── favicon.svg                    ├── controllers/
+│   ├── favicon.ico                    │   └── upload.controller.js
+│   ├── robots.txt                     ├── middleware/
+│   └── sitemap.xml                    │   └── auth.middleware.js
+├── netlify/                           ├── routes/
+│   └── functions/                     │   ├── auth.routes.js
+│       ├── chat.js                    │   ├── chat.js          ← main logic
+│       ├── upload.js                  │   └── upload.routes.js
+│       └── utils/ (mirrors backend)   ├── utils/
+├── src/                               │   ├── classifier.js
+│   ├── App.jsx                        │   ├── documentProcessor.js
+│   ├── index.js                       │   ├── systemPrompt.js
+│   ├── index.css                      │   └── tools.js
+│   ├── Assets/                        ├── server.js
+│   │   └── chymera-logo.svg           ├── package.json
+│   ├── components/                    └── Procfile
+│   │   ├── ArtifactViewer.jsx
+│   │   ├── ChatArea.jsx
+│   │   ├── ChatDropdownMenu.jsx
+│   │   ├── ContextualSuggestions.jsx
+│   │   ├── FileGenerator.jsx
+│   │   ├── InputBar.jsx
+│   │   ├── Message.jsx
+│   │   ├── PageLoader.jsx
+│   │   ├── RecentsPage.jsx
+│   │   ├── Sidebar.jsx
+│   │   ├── UsageBanner.jsx
+│   │   ├── WorkspaceLayout.jsx
+│   │   ├── auth/
+│   │   │   └── PhoneCapture.jsx
+│   │   └── landing/
+│   │       ├── AboutScroll.jsx
+│   │       ├── AuthCard.jsx
+│   │       ├── Capabilities.jsx
+│   │       ├── ChatDemo.jsx
+│   │       └── LandingFooter.jsx
+│   ├── config/
+│   │   └── supabase.js
+│   ├── context/
+│   │   ├── AuthContext.jsx
+│   │   └── ChatContext.jsx
+│   ├── pages/
+│   │   ├── Landing.jsx
+│   │   └── Landing.css
+│   └── utils/
+│       └── api.js
+├── package.json
+├── vercel.json
+└── netlify.toml
 ```
 
 ---
 
 ## Environment Variables
 
-### Backend (Railway)
+### Backend (`my-ai-assistant-main/.env`)
+```env
+PORT=8080
+GROQ_API_KEY=your_groq_api_key
+GEMINI_API_KEY=your_gemini_api_key
+TAVILY_API_KEY=your_tavily_api_key
+MEM0_API_KEY=your_mem0_api_key
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-| Variable | Required | Description |
-|---|---|---|
-| `GROQ_API_KEY` | Yes | Groq API key — [console.groq.com](https://console.groq.com) |
-| `GEMINI_API_KEY` | Yes | Google AI Studio key — [aistudio.google.com](https://aistudio.google.com) |
-| `TAVILY_API_KEY` | Yes | Tavily search key — [tavily.com](https://tavily.com) |
-| `MEM0_API_KEY` | Yes | Mem0 memory key — [mem0.ai](https://mem0.ai) |
-| `SUPABASE_URL` | Yes | Your Supabase project URL |
-| `SUPABASE_ANON_KEY` | Yes | Supabase anon/public key |
-| `PORT` | No | Server port (default: 8080) |
-
-### Frontend (Netlify)
-
-| Variable | Required | Description |
-|---|---|---|
-| `REACT_APP_SUPABASE_URL` | Yes | Your Supabase project URL |
-| `REACT_APP_SUPABASE_ANON_KEY` | Yes | Supabase anon/public key |
-| `REACT_APP_API_URL` | Dev only | Backend URL for local dev (e.g. `http://localhost:8080`) |
-
-> In production, the frontend calls `/.netlify/functions/chat` and `/.netlify/functions/upload` directly. The Express backend is only used in local development.
+### Frontend (`Nexmind-main/.env`)
+```env
+REACT_APP_API_URL=https://your-railway-backend-url.railway.app
+REACT_APP_USER_ID=default_user
+REACT_APP_SUPABASE_URL=your_supabase_url
+REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
 ---
 
-## Getting Started
+## Local Development
 
-### Prerequisites
-
-- Node.js 20+
-- npm
-- Free accounts: [Groq](https://console.groq.com) · [Google AI Studio](https://aistudio.google.com) · [Tavily](https://tavily.com) · [Mem0](https://mem0.ai) · [Supabase](https://supabase.com)
-
-### 1. Clone
-
+### Backend
 ```bash
-git clone https://github.com/xx-abhijeet-xx/my-ai-assistant.git
-```
-
-### 2. Backend setup
-
-```bash
-cd my-ai-assistant
+cd my-ai-assistant-main
 npm install
-cp .env.example .env
-# Fill in all API keys in .env
-npm start
-# Runs at http://localhost:8080
+npm run dev        # nodemon server.js — hot reload on port 8080
 ```
 
-### 3. Frontend setup
-
+### Frontend
 ```bash
-cd nexmind
+cd Nexmind-main
 npm install
-# Create .env.local with your Supabase credentials
-# Set REACT_APP_API_URL=http://localhost:8080 for local dev
-npm start
-# Runs at http://localhost:3000
+npm start          # react-scripts start — hot reload on port 3000
 ```
+
+The frontend proxies `/chat`, `/upload`, `/auth` to `http://localhost:8080` via the `"proxy"` field in `package.json`.
+
+---
+
+## Core Features
+
+### Multi-Provider AI Routing
+**File:** `my-ai-assistant-main/routes/chat.js` — `getModel()` function
+
+| Query Type | Model | Provider |
+|---|---|---|
+| `coding` | `llama-3.3-70b-versatile` | Groq |
+| `reasoning` | `qwen-qwq-32b` | Groq |
+| `search` (default) | `gemini-2.5-flash` | Google |
+| User-selected | Any of the above | Depends |
+
+Classification is in `utils/classifier.js`. All non-code, non-math queries return `'search'` by default, which routes to Gemini 2.5 Flash and triggers Tavily web search.
+
+### SSE Streaming
+Backend sets `Content-Type: text/event-stream` and writes `data: {...}\n\n` chunks. Frontend reads via `ReadableStream` in `src/utils/api.js`. Each chunk is `{ content: string }` during streaming, and a final `{ done: true, modelUsed, queryType, toolsUsed, sources }` event closes the stream.
+
+### Live Web Search (Tavily)
+When `queryType === 'search'`, the backend calls Tavily with `searchDepth: "advanced"` and `maxResults: 5`. Results are injected into the system prompt as numbered `[1]...[5]` sources. The model is instructed to cite only facts present in those results. Source URLs are returned in the `done` SSE event and stored on the message object for display.
+
+### Persistent Memory (Mem0)
+On every completed response, both the user message and AI response are saved to Mem0 under `user_id`. On subsequent requests, Mem0 is searched for relevant context (limit 3) and injected into the system prompt as `[USER CONTEXT]`. Memory is skipped when a PDF document is attached to avoid context pollution.
+
+### Tool Calling (Groq only)
+Two tools are registered in `utils/tools.js`:
+- `search_wikipedia(query)` — fetches Wikipedia REST API summary
+- `read_github_repo(owner, repo, path)` — fetches file content from GitHub API
+
+Tool calls are streamed, aggregated, executed, and a second Groq pass synthesises the results. Gemini uses its own native search grounding and does not go through the tool system.
+
+### PDF Processing
+Upload flow: `FileReader` → base64 → `POST /upload` → `documentProcessor.js` (LangChain text splitter) → chunks returned to frontend → chunks injected as `[ATTACHED DOCUMENTS]` in the next user message.
+
+### Vision (Image Analysis)
+Images are sent as base64 to `POST /chat/vision` → `meta-llama/llama-4-scout-17b-16e-instruct` on Groq. The vision model specialises in code, errors, UI screenshots, and diagrams.
+
+### Auth Flow
+Supabase handles signup, login, and Google OAuth. JWT from Supabase session is attached as `Authorization: Bearer <token>` on every protected request. `middleware/auth.middleware.js` verifies the JWT server-side before any route handler runs. Google OAuth users are redirected to `/chat` and prompted for a phone number via `PhoneCapture.jsx` if not already set.
+
+---
+
+## Key Files Reference
+
+### `my-ai-assistant-main/utils/systemPrompt.js`
+The base system prompt injected on every request. Uses pure ASCII (no Unicode box-drawing characters — avoids UTF-8 encoding corruption). Sections: identity, tools, answer structure, formatting rules, voice, and when-unsure fallback.
+
+**⚠️ Known issue:** This file still contains UTF-8 corrupted characters (`â"` instead of `━`, `â€"` instead of `—`). The clean version is in the output prompt file `systemPrompt.js`. Replace both:
+- `my-ai-assistant-main/utils/systemPrompt.js`
+- `netlify/functions/utils/systemPrompt.js`
+
+### `my-ai-assistant-main/utils/classifier.js`
+Returns `'coding'` for code-related keywords, `'reasoning'` for math keywords, and `'search'` for everything else. The `'search'` default ensures Tavily fires on all general/factual questions.
+
+### `my-ai-assistant-main/server.js`
+CORS is currently configured for:
+```js
+origin: ['http://localhost:3000', 'https://chymera.netlify.app']
+```
+**⚠️ Must add:** `'https://chymera.vercel.app'` — without this, all API calls from the Vercel deployment are rejected.
+
+### `src/utils/api.js`
+- `sendMessage()` — SSE consumer with AbortController signal support, sources extraction from done event
+- `sendVisionMessage()` — multipart form POST for image analysis
+- `uploadPdf()` — axios POST with progress callback and abort support
+- `detectFileRequest()` — regex parser for "create a markdown file..." style requests
+- `generateTitle()` — calls `/chat/title` for auto-naming sessions
+
+### `src/context/ChatContext.jsx`
+Central state for sessions, messages, streaming, artifacts. Key behaviours:
+- Sessions persisted to `localStorage` under key `chymera.chat.state.v1`
+- `abortRef` holds the current `AbortController` for stop-generation
+- `send()` handles file generation requests (detected via `detectFileRequest`) separately from chat requests
+- XML artifact parsing via state machine inside the token callback (`<file path="...">...</file>`)
+- `stopGeneration()` exposed in context value
+
+### `src/components/InputBar.jsx`
+**⚠️ Default model is still `llama-3.3-70b-versatile`** — should be `gemini-2.5-flash` to match the backend routing default. Change:
+```js
+const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
+// to:
+const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+```
+
+### `src/pages/Landing.jsx` + `Landing.css`
+**⚠️ Known bug:** Sections 2 (AboutScroll) and 3 (Capabilities) may not render on first load. Root causes:
+1. `AboutScroll.jsx` and `Capabilities.jsx` each define a duplicate `useReveal()` that creates conflicting IntersectionObservers
+2. `position: sticky` inside `overflow: hidden` in `.about-sticky-inner` — CSS spec incompatibility causing layout collapse
+3. No fallback if IntersectionObserver never fires
+
+**Fix:** See `chymera-landing-fix-prompt.md` — centralise reveal observer in `Landing.jsx`, fix overflow CSS, add 2.5s fallback.
+
+---
+
+## Pending Changes (not yet in codebase)
+
+These were specified in prompt files during our session but have NOT been applied to the actual code files. Apply them before the next deploy:
+
+| Change | File(s) | Prompt File |
+|--------|---------|-------------|
+| Fix CORS — add Vercel origin | `server.js` | `chymera-fix-prompt.md` — Fix 3 |
+| Fix vision route groq undefined crash | `routes/chat.js` | `chymera-fix-prompt.md` — Fix 1 |
+| Fix systemPrompt.js UTF-8 corruption | `utils/systemPrompt.js` + netlify copy | `systemPrompt.js` output file |
+| Change default model to Gemini Flash | `InputBar.jsx` | `chymera-full-upgrade-prompt.md` — Change 8 |
+| Add SourcesPill component | `Message.jsx` + `Message.css` | `chymera-full-upgrade-prompt.md` — Changes 9-10 |
+| Add slash commands | `InputBar.jsx` + `InputBar.css` | `chymera-full-upgrade-prompt.md` — Changes 11-12 |
+| Add keyboard shortcuts | `InputBar.jsx` + `ChatContext.jsx` | `chymera-full-upgrade-prompt.md` — Change 13 |
+| Add stop generation button | `InputBar.jsx` + `api.js` + `ChatContext.jsx` | `chymera-full-upgrade-prompt.md` — Change 14 |
+| Add S/M/L response length toggle | `InputBar.jsx` + `InputBar.css` | `chymera-full-upgrade-prompt.md` — Change 15 |
+| Fix landing page sections 2 & 3 | `Landing.jsx`, `Landing.css`, `AboutScroll.jsx`, `Capabilities.jsx` | `chymera-landing-fix-prompt.md` |
+| Add Thinking indicator + smooth streaming | `ChatContext.jsx`, `ChatArea.jsx`, `ChatArea.css`, `Message.jsx`, `Message.css` | `chymera-thinking-streaming-prompt.md` |
+| Add error enrichment in InputBar | `InputBar.jsx` | Previous session — `enrichErrorMessage` function |
 
 ---
 
 ## Deployment
 
-### Backend — Railway
-
+### Frontend (Vercel)
 ```bash
-npm install -g @railway/cli
-railway login
-railway init
-railway up
+cd Nexmind-main
+npm run build
+# Push to GitHub — Vercel auto-deploys on push to main
 ```
+Set all `REACT_APP_*` env vars in Vercel dashboard under Settings → Environment Variables.
 
-Set all environment variables in Railway dashboard → Variables tab.
-
-### Frontend — Netlify
-
-Connect your GitHub repo in Netlify dashboard.
-
-Set build settings:
-- Build command: `npm run build`
-- Publish directory: `build`
-- Functions directory: `netlify/functions`
-
-Set all `REACT_APP_*` environment variables in Netlify → Site settings → Environment variables.
-
-> The Netlify functions (`netlify/functions/chat.js` and `upload.js`) are self-contained — they include all AI provider logic and don't call the Express backend in production.
+### Backend (Railway)
+Push `my-ai-assistant-main` to its own GitHub repo. Railway auto-deploys on push.
+Set all backend env vars in Railway dashboard under Variables.
+The `Procfile` contains: `web: node server.js`
 
 ---
 
-## n8n Automation Workflows
+## Known Issues / Bugs
 
-n8n is a self-hostable workflow automation tool (like Zapier, but open source and free). You can connect Chymera to dozens of services without writing extra backend code.
-
-### Setup
-
-```bash
-# Run n8n locally with Docker
-docker run -it --rm \
-  -p 5678:5678 \
-  -v ~/.n8n:/home/node/.n8n \
-  n8nio/n8n
-
-# Open http://localhost:5678
-```
-
-Or use [n8n Cloud](https://n8n.io) free tier (no Docker needed).
+| Issue | Severity | Status | Fix Location |
+|-------|----------|--------|--------------|
+| Vision route crashes — `groq` undefined | Critical | Not fixed | `chymera-fix-prompt.md` Fix 1 |
+| CORS blocks Vercel frontend | Critical | Not fixed | `chymera-fix-prompt.md` Fix 3 |
+| systemPrompt.js UTF-8 corruption | High | Not fixed | Replace with output `systemPrompt.js` |
+| Landing sections 2 & 3 blank on load | High | Not fixed | `chymera-landing-fix-prompt.md` |
+| Default model is Llama not Gemini Flash | Medium | Not fixed | InputBar.jsx line 64 |
+| History parse — no try/catch in vision route | Medium | Not fixed | `chymera-fix-prompt.md` Fix 2 |
+| XSS risk in ChatDemo formatText | Low | Not fixed | `chymera-fix-prompt.md` Fix 4 |
 
 ---
 
-### Workflow 1 — Daily Briefing Email
+## Tech Stack Summary
 
-Every morning at 8am, n8n calls your Chymera backend and emails you a summary of today's news, weather, and your calendar.
-
-```
-Schedule Trigger (8:00 AM daily)
-    │
-    ▼
-HTTP Request → POST http://your-railway-url/chat
-    Body: {
-      "message": "Give me a morning briefing: top 5 tech news today,
-                  weather in Mumbai, and 3 motivational tips",
-      "modelId": "llama-3.3-70b-versatile"
-    }
-    Headers: { Authorization: Bearer <your_jwt> }
-    │
-    ▼
-Parse SSE Response (Code node)
-    │
-    ▼
-Gmail / SMTP → Send to you@email.com
-```
-
-**n8n nodes needed:** Schedule Trigger → HTTP Request → Code → Gmail
-
----
-
-### Workflow 2 — Slack Bot
-
-Ask Chymera questions directly from Slack using a slash command `/ask`.
-
-```
-Webhook Trigger (receives Slack slash command)
-    │
-    ▼
-HTTP Request → POST /chat
-    Body: { "message": "{{ $json.text }}", "userId": "{{ $json.user_id }}" }
-    │
-    ▼
-Code node (extract text from SSE stream)
-    │
-    ▼
-HTTP Request → POST https://slack.com/api/chat.postMessage
-    Body: { "channel": "{{ $json.channel_id }}", "text": "{{ $json.answer }}" }
-```
-
-**n8n nodes needed:** Webhook → HTTP Request → Code → HTTP Request (Slack)
-
----
-
-### Workflow 3 — GitHub PR Review Bot
-
-When a PR is opened, Chymera reviews the diff and posts a comment automatically.
-
-```
-GitHub Trigger (pull_request opened)
-    │
-    ▼
-HTTP Request → GitHub API (get PR diff)
-    │
-    ▼
-HTTP Request → POST /chat
-    Body: {
-      "message": "Review this code diff and identify bugs,
-                  security issues, and improvements:\n{{ $json.diff }}",
-      "modelId": "gemini-1.5-pro"
-    }
-    │
-    ▼
-HTTP Request → GitHub API (post PR comment)
-```
-
-**n8n nodes needed:** GitHub Trigger → HTTP Request (diff) → HTTP Request (Chymera) → Code → GitHub (comment)
-
----
-
-### Workflow 4 — PDF Inbox Processor
-
-When a PDF arrives in your Gmail, automatically upload it to Chymera, extract insights, and save to Notion.
-
-```
-Gmail Trigger (new email with PDF attachment)
-    │
-    ▼
-Code node (extract attachment, convert to base64)
-    │
-    ▼
-HTTP Request → POST /upload
-    Body: { "pdfBase64": "...", "fileName": "{{ $json.filename }}" }
-    │
-    ▼
-HTTP Request → POST /chat
-    Body: {
-      "message": "Summarize this document and extract all action items",
-      "documentContexts": [{ "fileName": "...", "chunks": {{ $json.chunks }} }]
-    }
-    │
-    ▼
-Notion → Create page with summary + action items
-```
-
-**n8n nodes needed:** Gmail Trigger → Code → HTTP Request (upload) → HTTP Request (chat) → Notion
-
----
-
-### Workflow 5 — Twitter/X Thread Generator
-
-Turn a topic into a ready-to-post Twitter thread on a schedule or on demand.
-
-```
-Manual Trigger or Schedule
-    │
-    ▼
-HTTP Request → POST /chat
-    Body: {
-      "message": "Write a 7-tweet thread about {{ $json.topic }}.
-                  Each tweet max 280 chars. Number them 1/7, 2/7 etc.",
-      "modelId": "llama-3.3-70b-versatile"
-    }
-    │
-    ▼
-Code node (split response into individual tweets)
-    │
-    ▼
-Twitter / X node (post thread)
-    — OR —
-Google Sheets (save drafts for review)
-```
-
----
-
-### Connecting n8n to Chymera — SSE Response Parser
-
-Since Chymera streams SSE responses, use this Code node to parse them in n8n:
-
-```javascript
-// n8n Code node — parse Chymera SSE response
-const raw = $input.item.json.data || '';
-const lines = raw.split('\n');
-let fullText = '';
-
-for (const line of lines) {
-  if (!line.startsWith('data: ')) continue;
-  try {
-    const parsed = JSON.parse(line.slice(6));
-    if (parsed.content) fullText += parsed.content;
-    if (parsed.done) break;
-  } catch (e) {
-    // skip malformed lines
-  }
-}
-
-return [{ json: { answer: fullText } }];
-```
-
-> **Tip:** Set the HTTP Request node to "Response Format: Text" to get the raw SSE stream, then parse it with the Code node above.
-
----
-
-## Models Used
-
-| Model | Provider | Used For |
-|---|---|---|
-| `llama-3.3-70b-versatile` | Groq | General chat, web search, coding, titles |
-| `gemini-1.5-pro` | Google | Vision, PDF analysis, complex reasoning |
-| `gemini-2.5-flash` | Google | Fast general responses |
-| `meta-llama/llama-4-scout-17b-16e-instruct` | Groq | Legacy vision (multipart image_url) |
-
----
-
-## Supabase Schema
-
-Chymera uses Supabase for auth and user management. Create these tables in your Supabase project:
-
-```sql
--- User profiles (auto-created on signup)
-create table profiles (
-  id uuid references auth.users on delete cascade,
-  name text,
-  phone text,
-  username text unique,
-  plan text default 'free',
-  usage_count integer default 0,
-  primary key (id)
-);
-
--- Auto-create profile on new user signup
-create or replace function handle_new_user()
-returns trigger as $$
-begin
-  insert into public.profiles (id, name)
-  values (new.id, new.raw_user_meta_data->>'name');
-  return new;
-end;
-$$ language plpgsql security definer;
-
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure handle_new_user();
-```
-
-Enable **Google OAuth** in Supabase → Authentication → Providers → Google.
-Set redirect URL to `https://your-netlify-app.netlify.app/chat`.
-
----
-
-## Roadmap
-
-- [x] Real-time SSE streaming
-- [x] Multi-model routing (Groq + Gemini)
-- [x] Web search via Tavily
-- [x] Persistent memory via Mem0
-- [x] Image vision (Gemini)
-- [x] PDF upload + RAG analysis
-- [x] Voice input (Web Speech API)
-- [x] File generation + artifact viewer
-- [x] Supabase auth (Email + Google OAuth)
-- [x] Landing page with animated chat demo
-- [ ] n8n workflow automation integrations
-- [ ] Mobile app (React Native)
-- [ ] Conversation search
-- [ ] Shared conversation links
-- [ ] Custom system prompt per conversation
-- [ ] Plugin marketplace
-
----
-
-## Author
-
-**Abhijeet Verma** — Full Stack Engineer at LTIMindtree
-
-- GitHub: [@xx-abhijeet-xx](https://github.com/xx-abhijeet-xx)
-- LinkedIn: [abhijeet-verma-dev](https://linkedin.com/in/abhijeet-verma-dev)
-- Portfolio: [abhijeet-verma.vercel.app](https://abhijeet-verma.vercel.app)
-- Email: contact.abhijeetverma@gmail.com
-
----
-
-## License
-
-MIT — free to use, modify, and distribute.
-
----
-
-> Built with curiosity, caffeine, and a lot of debugging. 🚀
+| Layer | Technology |
+|-------|-----------|
+| Frontend framework | React 18, React Router v7 |
+| Styling | CSS Modules (plain CSS per component), Tailwind (available, partially used) |
+| Auth | Supabase (email/password + Google OAuth) |
+| AI — fast/code | Groq — Llama 3.3 70B Versatile |
+| AI — reasoning | Groq — Qwen QwQ 32B |
+| AI — default/search | Google Gemini 2.5 Flash |
+| AI — vision | Groq — Llama 4 Scout 17B |
+| Web search | Tavily (advanced depth, 5 results) |
+| Memory | Mem0 |
+| Document processing | LangChain text splitter + PDF extraction |
+| Backend runtime | Node.js + Express 5 |
+| Backend deploy | Railway |
+| Frontend deploy | Vercel |
+| Fonts | Instrument Serif (display), DM Sans (body), JetBrains Mono (code) — loaded via Google Fonts link tag in index.html |
