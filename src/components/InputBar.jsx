@@ -7,6 +7,17 @@ import './InputBar.css';
 
 import { v4 as uuid } from 'uuid';
 
+const SLASH_COMMANDS = [
+  { cmd: '/debug',    label: 'Debug this error',        template: 'Debug this error and explain the root cause:\n\n' },
+  { cmd: '/explain',  label: 'Explain this code',       template: 'Explain what this code does, step by step:\n\n' },
+  { cmd: '/improve',  label: 'Improve this code',       template: 'Improve this code for readability, performance, and best practices:\n\n' },
+  { cmd: '/test',     label: 'Write unit tests',        template: 'Write comprehensive unit tests for this code:\n\n' },
+  { cmd: '/review',   label: 'Code review',             template: 'Do a thorough code review. Find bugs, security issues, and improvements:\n\n' },
+  { cmd: '/docs',     label: 'Write documentation',     template: 'Write clear documentation for this code:\n\n' },
+  { cmd: '/translate',label: 'Translate to Hindi',      template: 'Translate the following to Hindi:\n\n' },
+  { cmd: '/eli5',     label: 'Explain simply',          template: 'Explain this in simple terms, like I\'m new to programming:\n\n' },
+];
+
 const getFileIcon = (type) => {
   if (type.startsWith('image/')) return <ImageIcon size={20} color="#a0a0a8" />;
   if (type === 'application/pdf') return <FileText size={20} color="#ff4d4f" />;
@@ -58,12 +69,15 @@ const AttachmentPreview = ({ name, type, previewUrl, progress, onRemove }) => {
 };
 
 export default function InputBar({ isNewChat }) {
-  const { send, loading, setError, uploadPdf } = useChat();
+  const { send, loading, setError, uploadPdf, stopGeneration } = useChat();
   const [text, setText] = useState('');
   const [attachments, setAttachments] = useState([]); // [{ id, type, file, name, previewUrl, progress, cancelSource, documentContext }]
-  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [listening, setListening] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashFilter, setSlashFilter] = useState('');
+  const [responseLength, setResponseLength] = useState('normal');
   const textareaRef = useRef(null);
   const attachmentInputRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -75,6 +89,37 @@ export default function InputBar({ isNewChat }) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      const isMac = navigator.platform.toUpperCase().includes('MAC');
+      const modKey = isMac ? e.metaKey : e.ctrlKey;
+
+      // Cmd/Ctrl + K — new chat
+      if (modKey && e.key === 'k') {
+        e.preventDefault();
+        // Access newSession from context — need to get it
+        document.dispatchEvent(new CustomEvent('chymera:newchat'));
+      }
+
+      // Cmd/Ctrl + / — focus input
+      if (modKey && e.key === '/') {
+        e.preventDefault();
+        textareaRef.current?.focus();
+      }
+
+      // Esc — close slash menu if open, else blur
+      if (e.key === 'Escape') {
+        if (slashOpen) {
+          setSlashOpen(false);
+        } else {
+          textareaRef.current?.blur();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [slashOpen]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -93,7 +138,13 @@ export default function InputBar({ isNewChat }) {
       return;
     }
 
-    send(trimmed, {
+    const lengthSuffix = {
+      concise: '\n\n[Keep your response concise — 2 to 3 sentences max unless code is required.]',
+      normal: '',
+      detailed: '\n\n[Be thorough. Cover edge cases, tradeoffs, and give examples.]',
+    }[responseLength];
+
+    send((trimmed + lengthSuffix).trim(), {
       imagesBase64: attachments.filter(a => a.type.startsWith('image/')).map(a => a.previewUrl),
       documentContexts: attachments.filter(a => a.documentContext).map(a => a.documentContext),
       modelId: selectedModel
@@ -287,13 +338,48 @@ export default function InputBar({ isNewChat }) {
           placeholder="Message Chymera..."
           aria-label="Message input"
           value={text}
-          onChange={e => setText(e.target.value)}
+          onChange={e => {
+            const val = e.target.value;
+            setText(val);
+            if (val.startsWith('/') && !val.includes(' ')) {
+              setSlashFilter(val.slice(1).toLowerCase());
+              setSlashOpen(true);
+            } else {
+              setSlashOpen(false);
+            }
+          }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           onKeyDown={handleKey}
           rows={1}
           disabled={loading}
         />
+        {slashOpen && (() => {
+          const filtered = SLASH_COMMANDS.filter(c =>
+            c.cmd.slice(1).startsWith(slashFilter) || c.label.toLowerCase().includes(slashFilter)
+          );
+          if (!filtered.length) return null;
+          return (
+            <div className="slash-menu">
+              {filtered.map(c => (
+                <button
+                  key={c.cmd}
+                  className="slash-item"
+                  type="button"
+                  onMouseDown={e => {
+                    e.preventDefault();
+                    setText(c.template);
+                    setSlashOpen(false);
+                    setTimeout(() => textareaRef.current?.focus(), 0);
+                  }}
+                >
+                  <span className="slash-cmd">{c.cmd}</span>
+                  <span className="slash-label">{c.label}</span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
           <input
             ref={attachmentInputRef}
             type="file"
@@ -318,6 +404,20 @@ export default function InputBar({ isNewChat }) {
                 </svg>
               </button>
             </div>
+            <div className="length-toggle">
+              {['concise', 'normal', 'detailed'].map(l => (
+                <button
+                  key={l}
+                  type="button"
+                  className={`length-btn ${responseLength === l ? 'length-btn--active' : ''}`}
+                  onClick={() => setResponseLength(l)}
+                  title={l.charAt(0).toUpperCase() + l.slice(1)}
+                  disabled={loading}
+                >
+                  {l === 'concise' ? 'S' : l === 'normal' ? 'M' : 'L'}
+                </button>
+              ))}
+            </div>
           <div className="input-right">
             <select
               className="model-select"
@@ -340,7 +440,7 @@ export default function InputBar({ isNewChat }) {
               aria-label="Send message"
             >
               {loading ? (
-                <div className="spinner" />
+                <div className="spinner" onClick={stopGeneration} style={{cursor:'pointer'}} title="Stop generation" />
               ) : (
                 <svg viewBox="0 0 16 16" fill="black" width="13" height="13">
                   <path d="M2 8L14 2L8 14L7 9L2 8Z"/>

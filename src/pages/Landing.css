@@ -260,15 +260,16 @@
   position: relative; z-index: 1;
   max-width: 1280px; margin: 0 auto;
   padding: 110px 52px;
+  contain: layout style;
 }
 .landing-root .about-header { margin-bottom: 48px; }
 .landing-root .stag { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted2); font-weight: 500; display: block; margin-bottom: 12px; }
 .landing-root .sh2 { font-family: 'Instrument Serif', serif; font-size: clamp(30px,3.2vw,46px); line-height: 1.12; letter-spacing: -1px; }
 .landing-root .sh2 em { font-style: italic; color: var(--muted); }
 
-.landing-root .about-sticky-outer { height: 420px; position: relative; overflow: hidden; }
+.landing-root .about-sticky-outer { height: 420px; position: relative; overflow: visible; }
 .landing-root .about-sticky-inner {
-  position: sticky; top: 0;
+  position: relative;
   height: 420px; overflow: hidden;
   display: flex; flex-direction: column; justify-content: center;
 }
@@ -313,6 +314,7 @@
   background: var(--bg2);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+  contain: layout style;
 }
 .landing-root .cap-inner { max-width: 1280px; margin: 0 auto; padding: 100px 52px; }
 .landing-root .cap-header { margin-bottom: 56px; }
@@ -406,8 +408,23 @@
 .landing-root .badge-pulse { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: blink 2s infinite; }
 
 /* ── REVEAL ── */
-.landing-root .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.6s ease, transform 0.6s ease; }
-.landing-root .reveal.in { opacity: 1; transform: translateY(0); }
+.landing-root .reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.landing-root .reveal.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* Safety net: if JS fails entirely, sections are still readable */
+@media (prefers-reduced-motion: reduce) {
+  .landing-root .reveal { opacity: 1; transform: none; transition: none; }
+}
+/* Additional safety: force visibility on print */
+@media print {
+  .landing-root .reveal { opacity: 1; transform: none; }
+}
 
 /* ── KEYFRAMES ── */
 @keyframes up { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }

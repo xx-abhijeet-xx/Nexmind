@@ -17,13 +17,14 @@ async function getAuthHeaders() {
   return { Authorization: `Bearer ${session.access_token}` };
 }
 
-export async function sendMessage(message, history = [], onToken, documentContexts = [], modelId = 'llama-3.3-70b-versatile', imagesBase64 = []) {
+export async function sendMessage(message, history = [], onToken, documentContexts = [], modelId = 'llama-3.3-70b-versatile', imagesBase64 = [], signal = null) {
   const auth = await getAuthHeaders();
   const body = { message, userId: USER_ID, history, modelId, documentContexts, imagesBase64 };
   const res = await fetch(`${API_URL}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...auth },
     body: JSON.stringify(body),
+    signal,
   });
 
   if (!res.ok) {
@@ -42,6 +43,7 @@ export async function sendMessage(message, history = [], onToken, documentContex
   let finalModelUsed = modelId;
   let finalQueryType = '';
   let finalToolsUsed = false;
+  let finalSources = [];
 
   while (true) {
     const { done, value } = await reader.read();
@@ -65,6 +67,7 @@ export async function sendMessage(message, history = [], onToken, documentContex
             finalModelUsed = data.modelUsed || finalModelUsed;
             finalQueryType = data.queryType || finalQueryType;
             finalToolsUsed = data.toolsUsed || finalToolsUsed;
+            finalSources = data.sources || [];
             continue;
           }
           if (data.content && onToken) {
@@ -83,8 +86,9 @@ export async function sendMessage(message, history = [], onToken, documentContex
   return {
     model: finalModelUsed,
     queryType: finalQueryType,
-    searchUsed: false,
-    toolsUsed: finalToolsUsed
+    searchUsed: finalSources.length > 0,
+    toolsUsed: finalToolsUsed,
+    sources: finalSources,
   };
 }
 

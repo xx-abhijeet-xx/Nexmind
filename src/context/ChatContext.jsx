@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { v4 as uuid } from 'uuid';
 import { sendMessage, sendVisionMessage, generateTitle, generateFile, detectFileRequest, getFileMimeType, uploadPdf } from '../utils/api';
 
@@ -65,6 +65,7 @@ export function ChatProvider({ children }) {
   const [rateLimitStats, setRateLimitStats] = useState(null);
   const [artifactViewerOpen, setArtifactViewerOpen] = useState(false);
   const [artifacts, setArtifacts] = useState([]); // Array of { path, content, language }
+  const abortRef = useRef(null);
   
   // Extend activeSession with rate limit data for convenience (optional)
   const activeSession = sessions.find(s => s.id === activeId) || sessions[0];
@@ -99,6 +100,12 @@ export function ChatProvider({ children }) {
     ]);
     setActiveId(id);
   }, []);
+
+  useEffect(() => {
+    const handler = () => newSession();
+    document.addEventListener('chymera:newchat', handler);
+    return () => document.removeEventListener('chymera:newchat', handler);
+  }, [newSession]);
 
   const updateTitle = useCallback((id, title) => {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, title } : s));
@@ -203,6 +210,7 @@ export function ChatProvider({ children }) {
       model: '',
       queryType: '',
       searchUsed: false,
+      sources: [],
       ts: Date.now(),
       streaming: true,
       isThinking: true,   // NEW — thinking phase active
@@ -216,6 +224,7 @@ export function ChatProvider({ children }) {
         : s
     ));
 
+    abortRef.current = new AbortController();
     setLoading(true);
     try {
       let accumulatedContent = '';
@@ -319,7 +328,8 @@ export function ChatProvider({ children }) {
         },
         options.documentContexts || [],
         options.modelId || 'llama-3.3-70b-versatile',
-        options.imagesBase64 || []
+        options.imagesBase64 || [],
+        abortRef.current?.signal
       );
 
       setSessions(prev => prev.map(s => {
@@ -346,6 +356,14 @@ export function ChatProvider({ children }) {
       setLoading(false);
     }
   }, [activeId, activeSession, loading, updateTitle]);
+
+  const stopGeneration = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setLoading(false);
+  }, []);
 
   const regenerate = useCallback(async () => {
     if (loading) return;
@@ -391,7 +409,7 @@ export function ChatProvider({ children }) {
       activeSession, loading, error, setError,
       sidebarOpen, setSidebarOpen,
       rateLimitStats, setRateLimitStats,
-      newSession, send, deleteSession, regenerate,
+      newSession, send, deleteSession, regenerate, stopGeneration,
       updateTitle,
       uploadPdf,
       artifactViewerOpen,

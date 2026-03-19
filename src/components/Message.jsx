@@ -7,6 +7,59 @@ import { useChat } from '../context/ChatContext';
 import { downloadFile } from '../utils/api';
 import './Message.css';
 
+function SourcesPill({ sources }) {
+  const [open, setOpen] = useState(false);
+  if (!sources || sources.length === 0) {
+    return (
+      <span className="msg-tag msg-tag--search">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="10" height="10">
+          <circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="14" y2="14"/>
+        </svg>
+        Searched the web
+      </span>
+    );
+  }
+  return (
+    <div className="sources-wrap">
+      <button
+        className="msg-tag msg-tag--search sources-pill"
+        onClick={() => setOpen(o => !o)}
+        type="button"
+      >
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="10" height="10">
+          <circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="14" y2="14"/>
+        </svg>
+        {sources.length} source{sources.length !== 1 ? 's' : ''}
+        <svg
+          viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="9" height="9"
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
+        >
+          <polyline points="3,6 8,11 13,6"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="sources-dropdown">
+          {sources.map(s => (
+            <a
+              key={s.index}
+              href={s.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="source-item"
+            >
+              <span className="source-index">{s.index}</span>
+              <span className="source-title">{s.title}</span>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="10" height="10" style={{flexShrink:0}}>
+                <path d="M10 2h4v4M14 2L7 9M6 4H3a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-3"/>
+              </svg>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
@@ -186,14 +239,9 @@ export default function Message({ msg }) {
         {!isUser && (msg.searchUsed || msg.queryType) && (
           <div className="msg-tags">
             {msg.searchUsed && (
-              <span className="msg-tag msg-tag--search">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="10" height="10">
-                  <circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="14" y2="14"/>
-                </svg>
-                Searched the web
-              </span>
+              <SourcesPill sources={msg.sources || []} />
             )}
-            {msg.queryType && msg.queryType !== 'general' && (
+            {msg.queryType && msg.queryType !== 'general' && msg.queryType !== 'search' && (
               <span className="msg-tag msg-tag--type">
                 {msg.queryType}
               </span>
