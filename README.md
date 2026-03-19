@@ -2,7 +2,7 @@
 
 > Production-grade AI assistant with real-time streaming, live web search, persistent memory, vision, and document understanding.
 
-**Live:** https://chymera.vercel.app
+**Live:** https://chymera.netlify.app/
 **Backend:** Deployed on Railway
 **Author:** Abhijeet Verma — [github.com/xx-abhijeet-xx](https://github.com/xx-abhijeet-xx)
 
