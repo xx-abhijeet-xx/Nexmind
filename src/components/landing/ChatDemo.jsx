@@ -14,7 +14,8 @@ export default function ChatDemo() {
   const chatRef = useRef(null);
 
   useEffect(() => {
-    let active = true;
+    let active = false;
+    let observer;
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
     const runLoop = async () => {
@@ -72,13 +73,34 @@ export default function ChatDemo() {
       }
     };
 
-    runLoop();
-    return () => { active = false; };
+    observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !active) {
+          active = true;
+          runLoop();
+        } else if (!entry.isIntersecting) {
+          active = false;
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (chatRef.current) {
+      observer.observe(chatRef.current);
+    }
+
+    return () => {
+      active = false;
+      if (observer) observer.disconnect();
+    };
   }, []);
+
+  const sanitize = (str) =>
+    str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const formatText = (txt) => {
     if (!txt) return null;
-    const html = txt
+    const html = sanitize(txt)
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br/>');
     return <span dangerouslySetInnerHTML={{ __html: html }} />;

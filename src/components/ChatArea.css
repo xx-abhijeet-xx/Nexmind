@@ -74,6 +74,33 @@
   border: 1px solid var(--border2);
 }
 
+/* ── Thinking indicator ── */
+.thinking-bubble {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+}
+
+.thinking-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.thinking-label {
+  font-size: 12px;
+  color: var(--text3);
+  letter-spacing: 0.04em;
+  animation: thinking-fade 1.8s ease-in-out infinite;
+}
+
+@keyframes thinking-fade {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Keep .td as-is but also works inside .thinking-dots */
 .typing-bub {
   display: flex;
   gap: 4px;

@@ -201,7 +201,7 @@ export default function Message({ msg }) {
           </div>
         )}
 
-        <div className={`msg-bubble min-w-0 break-words ${isUser ? 'msg-bubble--user' : 'msg-bubble--ai'}`}>
+        <div className={`msg-bubble min-w-0 break-words ${isUser ? 'msg-bubble--user' : 'msg-bubble--ai'} ${!isUser && msg.streaming ? 'msg-bubble--streaming' : ''}`}>
           {isUser ? (
             <>
               {msg.imagesBase64 && msg.imagesBase64.map((b64, idx) => (

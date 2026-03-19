@@ -10,12 +10,15 @@ const StarIcon = () => (
   </svg>
 );
 
-function TypingIndicator() {
+function ThinkingIndicator() {
   return (
-    <div className="message message--ai">
+    <div className="message message--ai thinking-message">
       <div className="msg-avatar msg-avatar--ai"><StarIcon /></div>
-      <div className="typing-bub">
-        <span className="td" /><span className="td" /><span className="td" />
+      <div className="thinking-bubble">
+        <div className="thinking-dots">
+          <span className="td" /><span className="td" /><span className="td" />
+        </div>
+        <span className="thinking-label">Thinking</span>
       </div>
     </div>
   );
@@ -88,13 +91,13 @@ export default function ChatArea() {
 
       <div className="chat-messages max-w-full overflow-x-hidden">
         {!isNewChat && activeSession.messages.map(msg => {
-          if (msg.role === 'assistant' && msg.content === '' && msg.streaming) {
-            return <TypingIndicator key={msg.id} />;
+          if (msg.role === 'assistant' && msg.isThinking) {
+            return <ThinkingIndicator key={msg.id} />;
           }
           return <Message key={msg.id} msg={msg} />;
         })}
         {loading && activeSession.messages[activeSession.messages.length - 1]?.role !== 'assistant' && (
-          <TypingIndicator />
+          <ThinkingIndicator />
         )}
         <div ref={bottomRef} />
       </div>

@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ChatProvider } from './context/ChatContext';
-import WorkspaceLayout from './components/WorkspaceLayout';
-import PhoneCapture from './components/auth/PhoneCapture';
 import Landing from './pages/Landing';
 import PageLoader from './components/PageLoader';
+
+const WorkspaceLayout = lazy(() => import('./components/WorkspaceLayout'));
+const PhoneCapture = lazy(() => import('./components/auth/PhoneCapture'));
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -26,12 +27,18 @@ function ProtectedRoute({ children }) {
   // Google OAuth users who haven't supplied a phone yet
   const hasPhone = user.phone || user.user_metadata?.phone;
   if (!hasPhone) {
-    return <PhoneCapture onComplete={() => window.location.reload()} />;
+    return (
+      <Suspense fallback={null}>
+        <PhoneCapture onComplete={() => window.location.reload()} />
+      </Suspense>
+    );
   }
 
   return (
     <ChatProvider>
-      {children}
+      <Suspense fallback={<div className="auth-page"><span className="auth-spinner" style={{ width: 28, height: 28, borderWidth: 3 }} /></div>}>
+        {children}
+      </Suspense>
     </ChatProvider>
   );
 }
