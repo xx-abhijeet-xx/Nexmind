@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ChatProvider } from './context/ChatContext';
 import WorkspaceLayout from './components/WorkspaceLayout';
-import Login from './components/auth/Login';
-import Signup from './components/auth/Signup';
+import PhoneCapture from './components/auth/PhoneCapture';
+import Landing from './pages/Landing';
 import './App.css';
 
-function AuthGate() {
+function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  const [showLogin, setShowLogin] = useState(true);
 
   if (loading) {
     return (
@@ -20,24 +19,40 @@ function AuthGate() {
   }
 
   if (!user) {
-    return showLogin
-      ? <Login onSwitch={() => setShowLogin(false)} />
-      : <Signup onSwitch={() => setShowLogin(true)} />;
+    return <Navigate to="/" replace />;
+  }
+
+  // Google OAuth Schema Fallback
+  // Intercept users who lack the mandatory phone field before letting them into the App
+  const hasPhone = user.phone || user.user_metadata?.phone;
+  if (!hasPhone) {
+    return <PhoneCapture onComplete={() => window.location.reload()} />;
   }
 
   return (
-    <BrowserRouter>
-      <ChatProvider>
-        <WorkspaceLayout />
-      </ChatProvider>
-    </BrowserRouter>
+    <ChatProvider>
+      {children}
+    </ChatProvider>
   );
 }
 
 export default function App() {
   return (
     <AuthProvider>
-      <AuthGate />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route 
+            path="/chat" 
+            element={
+              <ProtectedRoute>
+                <WorkspaceLayout />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

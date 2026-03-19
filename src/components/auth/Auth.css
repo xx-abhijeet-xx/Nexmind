@@ -74,6 +74,7 @@
 }
 
 .auth-field input {
+  width: 100%;
   padding: 11px 14px;
   border-radius: 10px;
   border: 1px solid var(--border2);
@@ -172,4 +173,64 @@
 
 .auth-link:hover {
   color: #ff8f5e;
+}
+
+/* ─── Password Toggle ────────────────────────────────────────── */
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 40px; /* Space for the eye icon */
+}
+
+.eye-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.eye-btn:hover {
+  color: var(--text);
+}
+
+/* ─── Google Auth Button ─────────────────────────────────────── */
+
+.google-btn {
+  margin-top: 12px;
+  padding: 11px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+}
+
+.google-btn:hover {
+  background: rgba(255,255,255,0.03);
+  transform: translateY(-1px);
+}
+.google-btn:active {
+  transform: translateY(0);
 }

@@ -57,12 +57,27 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   };
 
+  /**
+   * Sign in with Google (OAuth)
+   */
+  const signInWithGoogle = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+    if (error) throw error;
+    return data;
+  };
+
   const value = {
     user,
     session,
     loading,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
   };
 

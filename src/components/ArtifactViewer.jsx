@@ -23,7 +23,7 @@ export default function ArtifactViewer() {
 
     try {
       const blob = await zip.generateAsync({ type: 'blob' });
-      saveAs(blob, 'paraai-project.zip');
+      saveAs(blob, 'chymera-project.zip');
     } catch (err) {
       console.error('Failed to generate zip', err);
     }
@@ -86,3 +86,4 @@ export default function ArtifactViewer() {
     </div>
   );
 }
+

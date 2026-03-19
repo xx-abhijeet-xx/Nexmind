@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid';
 import { sendMessage, sendVisionMessage, generateTitle, generateFile, detectFileRequest, getFileMimeType, uploadPdf } from '../utils/api';
 
 const ChatContext = createContext(null);
-const STORAGE_KEY = 'paraai.chat.state.v1';
+const STORAGE_KEY = 'chymera.chat.state.v1';
 
 function createDefaultSession() {
   return { id: 'default', title: 'New conversation', messages: [], createdAt: Date.now() };
@@ -140,7 +140,7 @@ export function ChatProvider({ children }) {
     if (fileRequest) {
       setLoading(true);
       try {
-        // Be strict about content — no HTML, no links, just raw content
+        // Be strict about content â€” no HTML, no links, just raw content
         const strictPrompt = `Return ONLY the raw ${fileRequest.fileType} file content. Do not include explanations, markdown code fences, HTML anchor tags, download instructions, or any preamble.\n\n${fileRequest.prompt}`;
         
         const fileData = await generateFile(
@@ -374,3 +374,4 @@ export function ChatProvider({ children }) {
 }
 
 export const useChat = () => useContext(ChatContext);
+

@@ -1,37 +1,37 @@
-# ParaAI — AI Assistant Platform
+# Chymera â€” AI Assistant Platform
 
 > A production-grade, browser-based AI assistant with real-time streaming, web search, persistent memory, vision understanding, and smart multi-model routing. Built from scratch with React + Node.js + Express, deployed on Railway and Vercel.
 
-![ParaAI Main UI](./src/Assets/image.png)
-![ParaAI Vision Example](./src/Assets/image2.png)
+![Chymera Main UI](./src/Assets/image.png)
+![Chymera Vision Example](./src/Assets/image2.png)
 
 ---
 
 ## Live Demo
 
-- **Frontend:** [paraai.vercel.app](https://paraai.vercel.app)
+- **Frontend:** [chymera.vercel.app](https://chymera.vercel.app)
 
 ---
 
-## What is ParaAI?
+## What is Chymera?
 
-ParaAI is a self-hosted AI assistant platform that rivals commercial tools like ChatGPT — built entirely with open source models and free APIs. It classifies every query automatically and routes it to the best available model, giving you the right tool for every task without switching apps.
+Chymera is a self-hosted AI assistant platform that rivals commercial tools like ChatGPT â€” built entirely with open source models and free APIs. It classifies every query automatically and routes it to the best available model, giving you the right tool for every task without switching apps.
 
 ---
 
 ## Features
 
-- **Streaming responses** — words appear token by token in real time, just like ChatGPT
-- **Web search** — automatically searches the internet for current events, news, and real-time data via Tavily API
-- **Persistent memory** — remembers your name, projects, and preferences across sessions via Mem0
-- **Image understanding** — upload screenshots, code photos, UI designs — AI analyzes them
-- **Smart routing** — detects whether you're asking a coding, reasoning, or general question and picks the best model
-- **Auto-title** — AI generates a descriptive title for every conversation from the first message
-- **Prompt templates** — pre-built templates for common developer tasks (fix code, review code, design system)
-- **Regenerate** — one click to get a fresh AI response if you're not satisfied
-- **Multi-session** — create and switch between multiple conversations
-- **Download** — export any conversation as a text file
-- **Mobile responsive** — works on any screen size
+- **Streaming responses** â€” words appear token by token in real time, just like ChatGPT
+- **Web search** â€” automatically searches the internet for current events, news, and real-time data via Tavily API
+- **Persistent memory** â€” remembers your name, projects, and preferences across sessions via Mem0
+- **Image understanding** â€” upload screenshots, code photos, UI designs â€” AI analyzes them
+- **Smart routing** â€” detects whether you're asking a coding, reasoning, or general question and picks the best model
+- **Auto-title** â€” AI generates a descriptive title for every conversation from the first message
+- **Prompt templates** â€” pre-built templates for common developer tasks (fix code, review code, design system)
+- **Regenerate** â€” one click to get a fresh AI response if you're not satisfied
+- **Multi-session** â€” create and switch between multiple conversations
+- **Download** â€” export any conversation as a text file
+- **Mobile responsive** â€” works on any screen size
 
 ---
 
@@ -41,7 +41,7 @@ ParaAI is a self-hosted AI assistant platform that rivals commercial tools like 
 | Technology | Purpose |
 |---|---|
 | Node.js + Express | REST API server |
-| Groq API | LLM inference — Llama 3.3 70B, DeepSeek-R1 |
+| Groq API | LLM inference â€” Llama 3.3 70B, DeepSeek-R1 |
 | Tavily API | Real-time web search |
 | Mem0 API | Persistent memory across sessions |
 | Multer | File/image upload handling |
@@ -71,33 +71,33 @@ ParaAI is a self-hosted AI assistant platform that rivals commercial tools like 
 Browser (React)
       |
       | HTTPS
-      ↓
+      â†“
 Express Backend (Railway)
       |
-      ├── POST /chat ──────────→ LiteLLM Router
-      │                              |
-      │                    ┌─────────┼──────────┐
-      │                    ↓         ↓          ↓
-      │               Llama 70B  DeepSeek-R1  Search
-      │               (general)  (reasoning)  (Tavily)
-      │
-      ├── POST /chat/vision ──→ Llama 4 Scout (vision)
-      ├── POST /chat/title ───→ Llama 70B (title gen)
-      ├── Memory Layer ────────→ Mem0 (recall + save)
-      └── GET /health ─────────→ status check
+      â”œâ”€â”€ POST /chat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â†’ LiteLLM Router
+      â”‚                              |
+      â”‚                    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+      â”‚                    â†“         â†“          â†“
+      â”‚               Llama 70B  DeepSeek-R1  Search
+      â”‚               (general)  (reasoning)  (Tavily)
+      â”‚
+      â”œâ”€â”€ POST /chat/vision â”€â”€â†’ Llama 4 Scout (vision)
+      â”œâ”€â”€ POST /chat/title â”€â”€â”€â†’ Llama 70B (title gen)
+      â”œâ”€â”€ Memory Layer â”€â”€â”€â”€â”€â”€â”€â”€â†’ Mem0 (recall + save)
+      â””â”€â”€ GET /health â”€â”€â”€â”€â”€â”€â”€â”€â”€â†’ status check
 ```
 
 ### Query Routing Logic
 
 ```
 User sends message
-      ↓
+      â†“
 Classifier (utils/classifier.js)
-      ↓
-Contains "code/bug/function/debug" → DeepSeek-R1 (coding)
-Contains "news/latest/today/search" → Llama 70B + Tavily (search)
-Contains "reason/math/solve/analyze" → DeepSeek-R1 (reasoning)
-Everything else → Llama 3.3 70B (general)
+      â†“
+Contains "code/bug/function/debug" â†’ DeepSeek-R1 (coding)
+Contains "news/latest/today/search" â†’ Llama 70B + Tavily (search)
+Contains "reason/math/solve/analyze" â†’ DeepSeek-R1 (reasoning)
+Everything else â†’ Llama 3.3 70B (general)
 ```
 
 ---
@@ -105,29 +105,29 @@ Everything else → Llama 3.3 70B (general)
 ## Project Structure
 
 ```
-my-ai-assistant/               ← Backend (Node.js)
-├── server.js                  ← Express entry point
-├── routes/
-│   └── chat.js                ← All chat endpoints
-├── utils/
-│   ├── classifier.js          ← Query type detection
-│   ├── systemPrompt.js        ← AI personality + standards
-│   └── tools.js               ← Plugin utilities
-├── .env                       ← Environment variables (never commit)
-└── package.json
+my-ai-assistant/               â† Backend (Node.js)
+â”œâ”€â”€ server.js                  â† Express entry point
+â”œâ”€â”€ routes/
+â”‚   â””â”€â”€ chat.js                â† All chat endpoints
+â”œâ”€â”€ utils/
+â”‚   â”œâ”€â”€ classifier.js          â† Query type detection
+â”‚   â”œâ”€â”€ systemPrompt.js        â† AI personality + standards
+â”‚   â””â”€â”€ tools.js               â† Plugin utilities
+â”œâ”€â”€ .env                       â† Environment variables (never commit)
+â””â”€â”€ package.json
 
-paraai/                        ← Frontend (React)
-├── src/
-│   ├── components/
-│   │   ├── Sidebar.jsx        ← Navigation + chat history
-│   │   ├── ChatArea.jsx       ← Main chat window
-│   │   ├── Message.jsx        ← Individual message + markdown
-│   │   └── InputBar.jsx       ← Text input + tools
-│   ├── context/
-│   │   └── ChatContext.jsx    ← Global state management
-│   └── utils/
-│       └── api.js             ← API calls to backend
-└── package.json
+chymera/                        â† Frontend (React)
+â”œâ”€â”€ src/
+â”‚   â”œâ”€â”€ components/
+â”‚   â”‚   â”œâ”€â”€ Sidebar.jsx        â† Navigation + chat history
+â”‚   â”‚   â”œâ”€â”€ ChatArea.jsx       â† Main chat window
+â”‚   â”‚   â”œâ”€â”€ Message.jsx        â† Individual message + markdown
+â”‚   â”‚   â””â”€â”€ InputBar.jsx       â† Text input + tools
+â”‚   â”œâ”€â”€ context/
+â”‚   â”‚   â””â”€â”€ ChatContext.jsx    â† Global state management
+â”‚   â””â”€â”€ utils/
+â”‚       â””â”€â”€ api.js             â† API calls to backend
+â””â”€â”€ package.json
 ```
 
 ---
@@ -179,7 +179,7 @@ Backend runs at `http://localhost:8080`
 ### 5. Install frontend dependencies
 
 ```bash
-cd ../paraai
+cd ../chymera
 npm install
 ```
 
@@ -232,9 +232,9 @@ data: {"done": true, "model": "llama-3.3-70b-versatile", "queryType": "coding"}
 Analyze an image with text prompt.
 
 **Request:** `multipart/form-data`
-- `image` — image file (jpg, png, webp)
-- `message` — text prompt
-- `history` — JSON stringified conversation history
+- `image` â€” image file (jpg, png, webp)
+- `message` â€” text prompt
+- `history` â€” JSON stringified conversation history
 
 **Response:**
 ```json
@@ -287,7 +287,7 @@ Health check endpoint.
 
 ## Deployment
 
-### Backend — Railway
+### Backend â€” Railway
 
 ```bash
 # Install Railway CLI
@@ -299,20 +299,20 @@ railway init
 railway up
 ```
 
-Add environment variables in Railway dashboard → Variables tab.
+Add environment variables in Railway dashboard â†’ Variables tab.
 
-### Frontend — Vercel
+### Frontend â€” Vercel
 
 ```bash
 # Install Vercel CLI
 npm install -g vercel
 
 # Deploy
-cd paraai
+cd chymera
 vercel
 ```
 
-Add `REACT_APP_API_URL` pointing to your Railway URL in Vercel dashboard → Settings → Environment Variables.
+Add `REACT_APP_API_URL` pointing to your Railway URL in Vercel dashboard â†’ Settings â†’ Environment Variables.
 
 ---
 
@@ -328,14 +328,14 @@ Add `REACT_APP_API_URL` pointing to your Railway URL in Vercel dashboard → Set
 
 ## What I Learned
 
-Building ParaAI taught me:
+Building Chymera taught me:
 
-- **Streaming APIs** — implementing Server-Sent Events end to end from Express to React
-- **LLM routing** — how to classify queries and route to specialized models
-- **RAG concepts** — integrating real-time search into AI context
-- **Fine-tuning** — creating JSONL training datasets, running QLoRA on free GPUs
-- **Prompt engineering** — writing system prompts that shape AI personality and behavior
-- **Production deployment** — Railway, Vercel, environment management, CI/CD
+- **Streaming APIs** â€” implementing Server-Sent Events end to end from Express to React
+- **LLM routing** â€” how to classify queries and route to specialized models
+- **RAG concepts** â€” integrating real-time search into AI context
+- **Fine-tuning** â€” creating JSONL training datasets, running QLoRA on free GPUs
+- **Prompt engineering** â€” writing system prompts that shape AI personality and behavior
+- **Production deployment** â€” Railway, Vercel, environment management, CI/CD
 
 ---
 
@@ -353,7 +353,7 @@ Building ParaAI taught me:
 
 ## Author
 
-**Abhijeet Verma** — Full Stack Engineer at LTIMindtree
+**Abhijeet Verma** â€” Full Stack Engineer at LTIMindtree
 
 - GitHub: [@xx-abhijeet-xx](https://github.com/xx-abhijeet-xx)
 - LinkedIn: [abhijeet-verma-dev](https://linkedin.com/in/abhijeet-verma-dev)
@@ -364,8 +364,8 @@ Building ParaAI taught me:
 
 ## License
 
-MIT — free to use, modify, and distribute.
+MIT â€” free to use, modify, and distribute.
 
 ---
 
-> Built with curiosity, caffeine, and a lot of debugging. 🚀
+> Built with curiosity, caffeine, and a lot of debugging. ðŸš€

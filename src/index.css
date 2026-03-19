@@ -1,11 +1,17 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 :root {
   --bg: #1c1c1e;
   --bg2: #28282c;
   --bg3: #323236;
-  --border: rgba(255,255,255,0.08);
-  --border2: rgba(255,255,255,0.13);
+  --border: rgba(255, 255, 255, 0.08);
+  --border2: rgba(255, 255, 255, 0.13);
   --text: #f2f2f2;
   --text2: #a0a0a8;
   --text3: #8b8b95;
@@ -28,7 +34,11 @@
   --font-mono: var(--mono);
 }
 
-html, body, #root { height: 100%; }
+html,
+body,
+#root {
+  height: 100%;
+}
 
 body {
   font-family: var(--sans);
@@ -37,8 +47,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button { font-family: var(--sans); cursor: pointer; }
-textarea, input { font-family: var(--sans); }
+button {
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+textarea,
+input {
+  font-family: var(--sans);
+}
 
 button:focus-visible,
 input:focus-visible,
@@ -49,28 +66,66 @@ a:focus-visible,
   outline-offset: 2px;
 }
 
-* { scrollbar-width: thin; scrollbar-color: var(--bg3) transparent; }
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg3) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg3);
+  border-radius: 2px;
+}
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse {
-  0%, 60%, 100% { opacity: 0.2; transform: scale(0.85); }
-  30%           { opacity: 1;   transform: scale(1); }
+
+  0%,
+  60%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.85);
+  }
+
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

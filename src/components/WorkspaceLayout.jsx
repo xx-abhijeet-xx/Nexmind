@@ -28,9 +28,10 @@ export default function WorkspaceLayout() {
         
         {/* Global Footer */}
         <div className="global-footer" style={{ textAlign: 'center', color: 'gray', fontSize: '0.8rem', marginTop: '1rem' }}>
-          ParaAI can make mistakes. Double-check important info.
+          Chymera can make mistakes. Double-check important info.
         </div>
       </main>
     </div>
   );
 }
+

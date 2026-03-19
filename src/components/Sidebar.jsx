@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
+import ChymeraLogo from '../Assets/chymera-logo.svg';
 import './Sidebar.css';
 
 const StarIcon = () => (
@@ -39,8 +40,8 @@ export default function Sidebar() {
     <aside className={`sidebar ${sidebarOpen ? '' : 'sidebar--closed'}`}>
       <div className="sb-topbar">
         <div className="sb-brand">
-          <span className="sb-star"><StarIcon /></span>
-          <span className="sb-name">ParaAI</span>
+          <img src={ChymeraLogo} alt="Chymera" style={{ height: '20px', marginRight: '10px' }} />
+          <span className="sb-name">Chymera</span>
         </div>
         <button className="icon-btn" type="button" onClick={() => setSidebarOpen(false)} title="Close sidebar" aria-label="Close sidebar">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
@@ -168,10 +169,10 @@ export default function Sidebar() {
       </div>
 
       <div className="sb-footer">
-        <div className="user-row" title={user?.email || 'User'}>
-          <div className="user-av">{user?.user_metadata?.username?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}</div>
+        <div className="user-row" title={user?.user_metadata?.full_name || user?.email || 'User'}>
+          <div className="user-av">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email || 'U')[0]?.toUpperCase()}</div>
           <div className="footer-info">
-            <div className="user-name">{user?.user_metadata?.username || user?.email?.split('@')[0] || 'User'}</div>
+            <div className="user-name">{user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email?.split('@')[0] || 'User'}</div>
             <div className="user-plan">Free plan</div>
           </div>
         </div>
@@ -186,3 +187,4 @@ export default function Sidebar() {
     </aside>
   );
 }
+

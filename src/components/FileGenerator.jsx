@@ -91,7 +91,7 @@ export default function FileGenerator({ onClose }) {
       <div className="fg-modal" onClick={e => e.stopPropagation()}>
         <div className="fg-header">
           <span className="fg-title">Generate File</span>
-          <button className="fg-close" onClick={onClose}>✕</button>
+          <button className="fg-close" onClick={onClose}>âœ•</button>
         </div>
 
         <div className="fg-body">
@@ -120,7 +120,7 @@ export default function FileGenerator({ onClose }) {
           <div className="fg-row">
             <label>What to generate</label>
             <textarea
-              placeholder="e.g. Write a README for a React AI assistant app called ParaAI..."
+              placeholder="e.g. Write a README for a React AI assistant app called Chymera..."
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               rows={4}
@@ -140,7 +140,7 @@ export default function FileGenerator({ onClose }) {
               <div className="fg-result-head">
                 <span>{result.fileName}</span>
                 <button className="fg-download-btn" onClick={handleDownload}>
-                  ↓ Download
+                  â†“ Download
                 </button>
               </div>
               <pre className="fg-preview">{result.content.slice(0, 500)}{result.content.length > 500 ? '\n...' : ''}</pre>
@@ -151,3 +151,4 @@ export default function FileGenerator({ onClose }) {
     </div>
   );
 }
+

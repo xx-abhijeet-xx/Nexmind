@@ -1,5 +1,5 @@
 {
-  "name": "paraai",
+  "name": "chymera",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -43,3 +43,4 @@
     "tailwindcss": "^4.2.1"
   }
 }
+

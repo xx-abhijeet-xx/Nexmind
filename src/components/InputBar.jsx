@@ -284,7 +284,7 @@ export default function InputBar({ isNewChat }) {
         <textarea
           ref={textareaRef}
           className="input-textarea"
-          placeholder="Message ParaAI..."
+          placeholder="Message Chymera..."
           aria-label="Message input"
           value={text}
           onChange={e => setText(e.target.value)}
@@ -374,3 +374,4 @@ export default function InputBar({ isNewChat }) {
     </div>
   );
 }
+
