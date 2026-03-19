@@ -172,21 +172,13 @@ Supabase handles signup, login, and Google OAuth. JWT from Supabase session is a
 ## Key Files Reference
 
 ### `my-ai-assistant-main/utils/systemPrompt.js`
-The base system prompt injected on every request. Uses pure ASCII (no Unicode box-drawing characters — avoids UTF-8 encoding corruption). Sections: identity, tools, answer structure, formatting rules, voice, and when-unsure fallback.
-
-**⚠️ Known issue:** This file still contains UTF-8 corrupted characters (`â"` instead of `━`, `â€"` instead of `—`). The clean version is in the output prompt file `systemPrompt.js`. Replace both:
-- `my-ai-assistant-main/utils/systemPrompt.js`
-- `netlify/functions/utils/systemPrompt.js`
+The base system prompt injected on every request. Uses pure ASCII (no Unicode box-drawing characters). Sections: identity, tools, answer structure, formatting rules, voice, and when-unsure fallback.
 
 ### `my-ai-assistant-main/utils/classifier.js`
 Returns `'coding'` for code-related keywords, `'reasoning'` for math keywords, and `'search'` for everything else. The `'search'` default ensures Tavily fires on all general/factual questions.
 
 ### `my-ai-assistant-main/server.js`
-CORS is currently configured for:
-```js
-origin: ['http://localhost:3000', 'https://chymera.netlify.app']
-```
-**⚠️ Must add:** `'https://chymera.vercel.app'` — without this, all API calls from the Vercel deployment are rejected.
+CORS is configured for all active frontend origins including the Vercel deployment.
 
 ### `src/utils/api.js`
 - `sendMessage()` — SSE consumer with AbortController signal support, sources extraction from done event
@@ -204,41 +196,10 @@ Central state for sessions, messages, streaming, artifacts. Key behaviours:
 - `stopGeneration()` exposed in context value
 
 ### `src/components/InputBar.jsx`
-**⚠️ Default model is still `llama-3.3-70b-versatile`** — should be `gemini-2.5-flash` to match the backend routing default. Change:
-```js
-const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
-// to:
-const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
-```
+Default model is `gemini-2.5-flash` to match the backend routing default.
 
 ### `src/pages/Landing.jsx` + `Landing.css`
-**⚠️ Known bug:** Sections 2 (AboutScroll) and 3 (Capabilities) may not render on first load. Root causes:
-1. `AboutScroll.jsx` and `Capabilities.jsx` each define a duplicate `useReveal()` that creates conflicting IntersectionObservers
-2. `position: sticky` inside `overflow: hidden` in `.about-sticky-inner` — CSS spec incompatibility causing layout collapse
-3. No fallback if IntersectionObserver never fires
-
-**Fix:** See `chymera-landing-fix-prompt.md` — centralise reveal observer in `Landing.jsx`, fix overflow CSS, add 2.5s fallback.
-
----
-
-## Pending Changes (not yet in codebase)
-
-These were specified in prompt files during our session but have NOT been applied to the actual code files. Apply them before the next deploy:
-
-| Change | File(s) | Prompt File |
-|--------|---------|-------------|
-| Fix CORS — add Vercel origin | `server.js` | `chymera-fix-prompt.md` — Fix 3 |
-| Fix vision route groq undefined crash | `routes/chat.js` | `chymera-fix-prompt.md` — Fix 1 |
-| Fix systemPrompt.js UTF-8 corruption | `utils/systemPrompt.js` + netlify copy | `systemPrompt.js` output file |
-| Change default model to Gemini Flash | `InputBar.jsx` | `chymera-full-upgrade-prompt.md` — Change 8 |
-| Add SourcesPill component | `Message.jsx` + `Message.css` | `chymera-full-upgrade-prompt.md` — Changes 9-10 |
-| Add slash commands | `InputBar.jsx` + `InputBar.css` | `chymera-full-upgrade-prompt.md` — Changes 11-12 |
-| Add keyboard shortcuts | `InputBar.jsx` + `ChatContext.jsx` | `chymera-full-upgrade-prompt.md` — Change 13 |
-| Add stop generation button | `InputBar.jsx` + `api.js` + `ChatContext.jsx` | `chymera-full-upgrade-prompt.md` — Change 14 |
-| Add S/M/L response length toggle | `InputBar.jsx` + `InputBar.css` | `chymera-full-upgrade-prompt.md` — Change 15 |
-| Fix landing page sections 2 & 3 | `Landing.jsx`, `Landing.css`, `AboutScroll.jsx`, `Capabilities.jsx` | `chymera-landing-fix-prompt.md` |
-| Add Thinking indicator + smooth streaming | `ChatContext.jsx`, `ChatArea.jsx`, `ChatArea.css`, `Message.jsx`, `Message.css` | `chymera-thinking-streaming-prompt.md` |
-| Add error enrichment in InputBar | `InputBar.jsx` | Previous session — `enrichErrorMessage` function |
+Landing page with reveal animations via IntersectionObserver. Observer is centralised in `Landing.jsx` with a 2.5s fallback to ensure all sections render correctly.
 
 ---
 
@@ -256,20 +217,6 @@ Set all `REACT_APP_*` env vars in Vercel dashboard under Settings → Environmen
 Push `my-ai-assistant-main` to its own GitHub repo. Railway auto-deploys on push.
 Set all backend env vars in Railway dashboard under Variables.
 The `Procfile` contains: `web: node server.js`
-
----
-
-## Known Issues / Bugs
-
-| Issue | Severity | Status | Fix Location |
-|-------|----------|--------|--------------|
-| Vision route crashes — `groq` undefined | Critical | Not fixed | `chymera-fix-prompt.md` Fix 1 |
-| CORS blocks Vercel frontend | Critical | Not fixed | `chymera-fix-prompt.md` Fix 3 |
-| systemPrompt.js UTF-8 corruption | High | Not fixed | Replace with output `systemPrompt.js` |
-| Landing sections 2 & 3 blank on load | High | Not fixed | `chymera-landing-fix-prompt.md` |
-| Default model is Llama not Gemini Flash | Medium | Not fixed | InputBar.jsx line 64 |
-| History parse — no try/catch in vision route | Medium | Not fixed | `chymera-fix-prompt.md` Fix 2 |
-| XSS risk in ChatDemo formatText | Low | Not fixed | `chymera-fix-prompt.md` Fix 4 |
 
 ---
 
