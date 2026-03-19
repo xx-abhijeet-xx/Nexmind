@@ -316,6 +316,7 @@ export function ChatProvider({ children }) {
               currentFileContent = '';
             }
           }
+        },
         options.documentContexts || [],
         options.modelId || 'llama-3.3-70b-versatile',
         options.imagesBase64 || []
