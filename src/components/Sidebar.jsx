@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
-import ChymeraLogo from '../Assets/chymera-logo.svg';
 import './Sidebar.css';
 
 const StarIcon = () => (
@@ -40,7 +39,6 @@ export default function Sidebar() {
     <aside className={`sidebar ${sidebarOpen ? '' : 'sidebar--closed'}`}>
       <div className="sb-topbar">
         <div className="sb-brand">
-          <img src={ChymeraLogo} alt="Chymera" style={{ height: '20px', marginRight: '10px' }} />
           <span className="sb-name">Chymera</span>
         </div>
         <button className="icon-btn" type="button" onClick={() => setSidebarOpen(false)} title="Close sidebar" aria-label="Close sidebar">

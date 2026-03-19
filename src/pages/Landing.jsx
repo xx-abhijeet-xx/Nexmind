@@ -7,7 +7,6 @@ import ChatDemo from '../components/landing/ChatDemo';
 import AboutScroll from '../components/landing/AboutScroll';
 import Capabilities from '../components/landing/Capabilities';
 import LandingFooter from '../components/landing/LandingFooter';
-import ChymeraLogo from '../Assets/chymera-logo.svg';
 
 export default function Landing() {
   const { user, loading } = useAuth();
@@ -114,8 +113,7 @@ export default function Landing() {
           onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           aria-label="Chymera home"
         >
-          <img src={ChymeraLogo} alt="" style={{ height: '32px', display: 'block' }} />
-          <span style={{ marginLeft: '10px', fontFamily: "'Instrument Serif', serif", fontSize: '20px' }}>Chymera</span>
+          <span style={{ fontFamily: "'Instrument Serif', serif", fontSize: '20px' }}>Chymera</span>
         </a>
 
         <div className="nav-right">

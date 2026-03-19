@@ -1,5 +1,4 @@
 import React from 'react';
-import ChymeraLogo from '../../Assets/chymera-logo.svg';
 
 export default function LandingFooter() {
   const scrollToTop = (e) => {
@@ -18,8 +17,7 @@ export default function LandingFooter() {
       <div className="footer-top">
         <div className="foot-brand">
           <a href="#" className="foot-logo" onClick={scrollToTop} aria-label="Chymera home">
-            <img src={ChymeraLogo} alt="Chymera" style={{ height: '26px' }} />
-            <span style={{ marginLeft: '8px' }}>Chymera</span>
+            <span>Chymera</span>
           </a>
           <p className="foot-tagline">One interface for every AI model you need. Think faster, build better.</p>
           <div className="foot-social">
