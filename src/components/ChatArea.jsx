@@ -51,7 +51,7 @@ export default function ChatArea() {
   };
 
   return (
-    <div className={`chat-area ${isNewChat ? 'chat-area--empty' : ''}`}>
+    <div className={`chat-area max-w-full overflow-x-hidden ${isNewChat ? 'chat-area--empty' : ''}`}>
       {!isNewChat && (
         <div className="chat-topbar">
           {!sidebarOpen && (
@@ -86,7 +86,7 @@ export default function ChatArea() {
         </div>
       )}
 
-      <div className="chat-messages">
+      <div className="chat-messages max-w-full overflow-x-hidden">
         {!isNewChat && activeSession.messages.map(msg => {
           if (msg.role === 'assistant' && msg.content === '' && msg.streaming) {
             return <TypingIndicator key={msg.id} />;

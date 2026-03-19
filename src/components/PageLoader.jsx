@@ -13,29 +13,36 @@ export default function PageLoader({ onComplete, minMs = 2800 }) {
 
   /* ── particle field ── */
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const wrap   = wrapRef.current;
-    if (!canvas || !wrap) return;
-
-    const ctx = canvas.getContext('2d');
-
+    let particles = [];
+    
+    // Safety checks via ref to avoid unmount crashes
     const resize = () => {
+      if (!canvasRef.current || !wrapRef.current) return;
+      const canvas = canvasRef.current;
+      const wrap = wrapRef.current;
+      
       canvas.width  = wrap.offsetWidth;
       canvas.height = wrap.offsetHeight;
+      
+      if (particles.length === 0) {
+        particles = Array.from({ length: 60 }, () => ({
+          x:     Math.random() * canvas.width,
+          y:     Math.random() * canvas.height,
+          vx:    (Math.random() - 0.5) * 0.3,
+          vy:    (Math.random() - 0.5) * 0.3,
+          r:     Math.random() * 1.2 + 0.2,
+          a:     Math.random() * 0.35 + 0.05,
+          amber: Math.random() > 0.5,
+        }));
+      }
     };
-    resize();
-
-    const particles = Array.from({ length: 60 }, () => ({
-      x:     Math.random() * canvas.width,
-      y:     Math.random() * canvas.height,
-      vx:    (Math.random() - 0.5) * 0.3,
-      vy:    (Math.random() - 0.5) * 0.3,
-      r:     Math.random() * 1.2 + 0.2,
-      a:     Math.random() * 0.35 + 0.05,
-      amber: Math.random() > 0.5,
-    }));
 
     const draw = () => {
+      if (!canvasRef.current || !wrapRef.current) return;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       particles.forEach(p => {
@@ -70,22 +77,60 @@ export default function PageLoader({ onComplete, minMs = 2800 }) {
       rafRef.current = requestAnimationFrame(draw);
     };
 
-    draw();
+    // Initialize
+    if (canvasRef.current && wrapRef.current) {
+      resize();
+      draw();
+    }
 
-    const ro = new ResizeObserver(resize);
-    ro.observe(wrap);
+    const ro = new ResizeObserver(() => {
+      if (wrapRef.current && canvasRef.current) {
+        requestAnimationFrame(resize);
+      }
+    });
+    
+    if (wrapRef.current) {
+      ro.observe(wrapRef.current);
+    }
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       ro.disconnect();
     };
   }, []);
 
   /* ── hide / done timers ── */
   useEffect(() => {
-    const hideT = setTimeout(() => setHiding(true), minMs);
-    const doneT = setTimeout(() => { if (onComplete) onComplete(); }, minMs + 350);
-    return () => { clearTimeout(hideT); clearTimeout(doneT); };
+    let minTimeMet = false;
+    let pageLoaded = document.readyState === 'complete';
+    let triggered = false;
+
+    const tryComplete = () => {
+      if (minTimeMet && pageLoaded && !triggered) {
+        triggered = true;
+        setHiding(true);
+        setTimeout(() => { if (onComplete) onComplete(); }, 350);
+      }
+    };
+
+    const onLoad = () => {
+      pageLoaded = true;
+      tryComplete();
+    };
+
+    if (!pageLoaded) {
+      window.addEventListener('load', onLoad);
+    }
+
+    const timer = setTimeout(() => {
+      minTimeMet = true;
+      tryComplete();
+    }, minMs);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('load', onLoad);
+    };
   }, [onComplete, minMs]);
 
   return (

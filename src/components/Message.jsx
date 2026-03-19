@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useChat } from '../context/ChatContext';
@@ -73,7 +74,7 @@ function CodeBlock({ language, value }) {
   };
 
   return (
-    <div className="code-block">
+    <div className="code-block max-w-full">
       <div className="code-block__head">
         <span className="code-block__lang">{language || 'code'}</span>
         <div style={{ display: 'flex', gap: '4px' }}>
@@ -84,13 +85,13 @@ function CodeBlock({ language, value }) {
       <SyntaxHighlighter
         style={vscDarkPlus}
         language={language || 'text'}
-        PreTag="div"
+        className="syntax-wrap-fix"
         customStyle={{
           margin: 0,
-          padding: '12px 14px',
+          padding: '14px 16px',
           background: 'transparent',
-          fontSize: '12px',
-          lineHeight: '1.8',
+          fontSize: '13px',
+          lineHeight: '1.6',
           fontFamily: 'var(--mono)',
         }}
       >
@@ -104,8 +105,8 @@ const components = {
   code({ node, inline, className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || '');
     const value = String(children).replace(/\n$/, '');
-    if (!inline && match) {
-      return <CodeBlock language={match[1]} value={value} />;
+    if (!inline) {
+      return <CodeBlock language={match ? match[1] : 'text'} value={value} />;
     }
     return <code className="inline-code" {...props}>{children}</code>;
   },
@@ -174,14 +175,14 @@ export default function Message({ msg }) {
   }, [previewOpen]);
 
   return (
-    <div className={`message ${isUser ? 'message--user' : 'message--ai'}`}>
+    <div className={`message max-w-full ${isUser ? 'message--user' : 'message--ai'}`}>
       {!isUser && (
         <div className="msg-avatar msg-avatar--ai">
           <StarIcon />
         </div>
       )}
 
-      <div className="msg-body">
+      <div className="msg-body min-w-0">
         {!isUser && (msg.searchUsed || msg.queryType) && (
           <div className="msg-tags">
             {msg.searchUsed && (
@@ -200,7 +201,7 @@ export default function Message({ msg }) {
           </div>
         )}
 
-        <div className={`msg-bubble ${isUser ? 'msg-bubble--user' : 'msg-bubble--ai'}`}>
+        <div className={`msg-bubble min-w-0 break-words ${isUser ? 'msg-bubble--user' : 'msg-bubble--ai'}`}>
           {isUser ? (
             <>
               {msg.imagesBase64 && msg.imagesBase64.map((b64, idx) => (
@@ -244,7 +245,7 @@ export default function Message({ msg }) {
             </div>
           ) : (
             <>
-              <ReactMarkdown components={components}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
                 {msg.content}
               </ReactMarkdown>
               {msg.streaming && <span className="cursor" />}
