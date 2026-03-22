@@ -39,9 +39,13 @@ function nextGeminiKey() {
 // Model selection based on task
 function getModel(type) {
   switch (type) {
-    case "coding": return "llama-3.3-70b-versatile";
-    case "reasoning": return "qwen-qwq-32b";
-    default: return "llama-3.3-70b-versatile";
+    case 'coding':    return 'llama-3.3-70b-versatile';
+    case 'reasoning': return 'qwen-qwq-32b';
+    case 'chitchat':  return 'llama-3.3-70b-versatile';
+    case 'creative':  return 'gemini-2.5-flash';
+    case 'search':    return 'llama-3.3-70b-versatile';
+    case 'factual':   return 'llama-3.3-70b-versatile';
+    default:          return 'gemini-2.5-flash';
   }
 }
 
@@ -88,7 +92,7 @@ exports.handler = async (event, context) => {
     const queryType = classifyQuery(message);
 
     let memoryContext = "";
-    if (documentContexts.length === 0 && authObj.memory) {
+    if (queryType !== 'chitchat' && documentContexts.length === 0 && authObj.memory) {
       try {
         const memories = await authObj.memory.search(message, { user_id: userId, limit: 3 });
         if (memories.length > 0) memoryContext = memories.map((m) => m.memory).join("\n");
@@ -115,9 +119,11 @@ exports.handler = async (event, context) => {
     const dynamicContext = [
       memoryContext ? `\nBackground context about this user:\n${memoryContext}` : "",
       searchContext ? `\nCurrent web search results:\n${searchContext}` : "",
-      "\nYou have access to the following tools:",
-      "- search_wikipedia: Use this when the user asks about ANY topic, concept, person, technology, or event that would benefit from a factual lookup.",
-      "- read_github_repo: Use this when the user mentions a GitHub repository.",
+      queryType === 'factual'
+        ? `\n[TOOLS]\n- search_wikipedia(query): The user is asking a factual question. You MUST call search_wikipedia to look up the answer. Never guess — always look it up first.\n- read_github_repo(owner, repo, path): call when user asks about a specific GitHub repo.`
+        : queryType === 'chitchat' || queryType === 'creative'
+        ? ''
+        : `\n[TOOLS]\n- search_wikipedia(query): call for any factual topic you are not 100% certain about. Never guess — look it up.\n- read_github_repo(owner, repo, path): call when user asks about a specific GitHub repo.\nNEVER write "(Waiting for search results...)" in plain text. Either call the tool or say you don't know.`,
       "IMPORTANT: When a tool can provide better information than your training data, you MUST call it.",
     ].filter(Boolean).join("\n");
 
@@ -206,13 +212,14 @@ exports.handler = async (event, context) => {
       // ── Groq Flow ──
       const groq = new Groq({ apiKey: nextGroqKey() });
       try {
+        const skipTools = queryType === 'chitchat' || queryType === 'creative';
         const stream = await groq.chat.completions.create({
           model: modelId,
           messages,
-          tools: toolsConfig,
-          tool_choice: "auto",
-          max_tokens: 2048,
-          temperature: 0.7,
+          tools: skipTools ? undefined : toolsConfig,
+          tool_choice: skipTools ? undefined : 'auto',
+          max_tokens: queryType === 'chitchat' ? 300 : 2048,
+          temperature: queryType === 'creative' ? 0.9 : 0.7,
           stream: true,
         });
         

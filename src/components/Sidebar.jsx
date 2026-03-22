@@ -11,7 +11,7 @@ const StarIcon = () => (
 );
 
 export default function Sidebar() {
-  const { sessions, activeId, setActiveId, newSession, deleteSession, setSidebarOpen, sidebarOpen } = useChat();
+  const { sessions, activeId, setActiveId, newSession, deleteSession, setSidebarOpen, sidebarOpen, dbLoading } = useChat();
   const { user, signOut } = useAuth();
   const [search, setSearch] = useState('');
   const [searching, setSearching] = useState(false);
@@ -115,7 +115,13 @@ export default function Sidebar() {
       <div className="sb-label">Recents</div>
 
       <div className="sb-list">
-        {!sidebarOpen ? (
+        {dbLoading ? (
+          <div className="sidebar-loading">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="sidebar-skeleton" />
+            ))}
+          </div>
+        ) : !sidebarOpen ? (
           <button 
             className="nav-btn" 
             type="button" 

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { v4 as uuid } from 'uuid';
 import { sendMessage, sendVisionMessage, generateTitle, generateFile, detectFileRequest, getFileMimeType, uploadPdf } from '../utils/api';
+import { supabase } from '../config/supabase';
 
 const ChatContext = createContext(null);
 const STORAGE_KEY = 'chymera.chat.state.v1';
@@ -66,9 +67,137 @@ export function ChatProvider({ children }) {
   const [artifactViewerOpen, setArtifactViewerOpen] = useState(false);
   const [artifacts, setArtifacts] = useState([]); // Array of { path, content, language }
   const abortRef = useRef(null);
+  const [dbLoading, setDbLoading] = useState(true);
   
   // Extend activeSession with rate limit data for convenience (optional)
   const activeSession = sessions.find(s => s.id === activeId) || sessions[0];
+
+  // ── SUPABASE DB HELPERS ──
+  const saveConversationToDB = async (sessionId, title, userId) => {
+    try {
+      await supabase.from('conversations').upsert({
+        id: sessionId,
+        user_id: userId,
+        title: title,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+    } catch (e) {}
+  };
+
+  const saveMessageToDB = async (message, conversationId, userId) => {
+    try {
+      await supabase.from('messages').upsert({
+        id: message.id,
+        conversation_id: conversationId,
+        user_id: userId,
+        role: message.role,
+        content: message.content || '',
+        model_used: message.model || null,
+        query_type: message.queryType || null,
+        tools_used: message.toolsUsed || false,
+        is_file_gen: message.isFileGeneration || false,
+        file_content: message.fileContent || null,
+        file_name: message.fileName || null,
+        file_type: message.fileType || null,
+        created_at: new Date(message.ts || Date.now()).toISOString()
+      }, { onConflict: 'id' });
+    } catch (e) {}
+  };
+
+  const updateConversationTitle = async (sessionId, title) => {
+    try {
+      await supabase.from('conversations')
+        .update({ title, updated_at: new Date().toISOString() })
+        .eq('id', sessionId);
+    } catch (e) {}
+  };
+
+  const incrementUsage = async (userId) => {
+    try {
+      const { data: existing } = await supabase
+        .from('usage').select('message_count').eq('user_id', userId).single();
+      await supabase.from('usage').upsert({
+        user_id: userId,
+        message_count: (existing?.message_count || 0) + 1,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+    } catch (e) {}
+  };
+
+  // ── ON MOUNT: LOAD CONVERSATIONS FROM SUPABASE ──
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          if (isMounted) setDbLoading(false);
+          return;
+        }
+        
+        const { data: convos } = await supabase
+          .from('conversations')
+          .select('id, title, created_at, updated_at')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(50);
+          
+        if (convos && convos.length > 0 && isMounted) {
+          const finalSessions = [];
+          for (const convo of convos) {
+            const { data: msgs } = await supabase
+              .from('messages')
+              .select('*')
+              .eq('conversation_id', convo.id)
+              .order('created_at', { ascending: true });
+              
+            finalSessions.push({
+              id: convo.id,
+              title: convo.title,
+              createdAt: new Date(convo.created_at).getTime(),
+              messages: (msgs || []).map(m => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                model: m.model_used,
+                queryType: m.query_type,
+                toolsUsed: m.tools_used,
+                ts: new Date(m.created_at).getTime(),
+                isFileGeneration: m.is_file_gen,
+                fileContent: m.file_content,
+                fileName: m.file_name,
+                fileType: m.file_type,
+              }))
+            });
+          }
+          setSessions(finalSessions);
+          setActiveId(finalSessions[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to load DB state:', err.message);
+      } finally {
+        if (isMounted) setDbLoading(false);
+      }
+    }
+    loadData();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        const defaultSession = createDefaultSession();
+        setSessions([defaultSession]);
+        setActiveId(defaultSession.id);
+      } else if (event === 'SIGNED_IN') {
+        setDbLoading(true);
+        loadData();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -99,6 +228,10 @@ export function ChatProvider({ children }) {
       ...prev,
     ]);
     setActiveId(id);
+    
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) saveConversationToDB(id, 'New conversation', user.id);
+    });
   }, []);
 
   useEffect(() => {
@@ -109,6 +242,7 @@ export function ChatProvider({ children }) {
 
   const updateTitle = useCallback((id, title) => {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, title } : s));
+    updateConversationTitle(id, title);
   }, []);
 
   const send = useCallback(async (text, options = {}) => {
@@ -140,7 +274,13 @@ export function ChatProvider({ children }) {
       });
     }
 
-
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        saveConversationToDB(activeId, activeSession.title, user.id);
+        saveMessageToDB(userMsg, activeId, user.id);
+        incrementUsage(user.id);
+      }
+    });
 
     // Check if this is a file generation request
     const fileRequest = detectFileRequest(messageText);
@@ -193,6 +333,11 @@ export function ChatProvider({ children }) {
             ? { ...s, messages: markLastAssistant([...s.messages, aiMsg]) }
             : s
         ));
+
+        // DB sync AI file generation msg
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) saveMessageToDB(aiMsg, activeId, user.id);
+        });
       } catch (err) {
         if (err.usage) setRateLimitStats(err.usage);
         setError(err.message);
@@ -345,6 +490,19 @@ export function ChatProvider({ children }) {
           )
         };
       }));
+
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          const finalAiMsg = {
+            ...aiMsg,
+            content: accumulatedContent,
+            model: metadata.modelUsed,
+            queryType: metadata.queryType,
+            toolsUsed: metadata.toolsUsed
+          };
+          saveMessageToDB(finalAiMsg, activeId, user.id);
+        }
+      });
     } catch (err) {
       if (err.usage) setRateLimitStats(err.usage);
       setError(err.message);
@@ -401,6 +559,9 @@ export function ChatProvider({ children }) {
       if (id === activeId) setActiveId(next[0].id);
       return next;
     });
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) supabase.from('conversations').delete().eq('id', id).eq('user_id', user.id).then();
+    });
   }, [activeId]);
 
   return (
@@ -413,6 +574,7 @@ export function ChatProvider({ children }) {
       updateTitle,
       uploadPdf,
       artifactViewerOpen,
+      dbLoading,
       setArtifactViewerOpen,
       artifacts,
       setArtifacts,

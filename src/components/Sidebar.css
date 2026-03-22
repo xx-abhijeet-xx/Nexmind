@@ -231,3 +231,13 @@
 }
 
 .icon-btn:hover { background: var(--bg2); color: var(--text2); }
+
+/* ── SIDEBAR SKELETON LOADING ── */
+.sidebar-loading { padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; }
+.sidebar-skeleton {
+  height: 36px; border-radius: 8px;
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg2) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
