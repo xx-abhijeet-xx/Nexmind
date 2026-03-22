@@ -68,6 +68,7 @@ export function ChatProvider({ children }) {
   const [artifacts, setArtifacts] = useState([]); // Array of { path, content, language }
   const abortRef = useRef(null);
   const [dbLoading, setDbLoading] = useState(true);
+  const userHasSelectedRef = useRef(false);
   
   // Extend activeSession with rate limit data for convenience (optional)
   const activeSession = sessions.find(s => s.id === activeId) || sessions[0];
@@ -172,7 +173,11 @@ export function ChatProvider({ children }) {
             });
           }
           setSessions(finalSessions);
-          setActiveId(finalSessions[0].id);
+          // Only auto-select the first session if the user hasn't manually
+          // chosen a different one while we were loading from DB.
+          if (!userHasSelectedRef.current) {
+            setActiveId(finalSessions[0].id);
+          }
         }
       } catch (err) {
         console.error('Failed to load DB state:', err.message);
@@ -184,12 +189,22 @@ export function ChatProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
+        userHasSelectedRef.current = false;
         const defaultSession = createDefaultSession();
         setSessions([defaultSession]);
         setActiveId(defaultSession.id);
+        window.localStorage.removeItem(STORAGE_KEY);
       } else if (event === 'SIGNED_IN') {
-        setDbLoading(true);
-        loadData();
+        // Only reload if sessions are still in default/empty state
+        // (i.e. this is a fresh login, not a token refresh on an active session)
+        setSessions(prev => {
+          const hasRealSessions = prev.some(s => s.id !== 'default' && s.messages.length >= 0);
+          if (!hasRealSessions) {
+            setDbLoading(true);
+            loadData();
+          }
+          return prev;
+        });
       }
     });
 
@@ -548,6 +563,11 @@ export function ChatProvider({ children }) {
     await send(lastUserMsg.content);
   }, [activeId, activeSession, loading, send]);
 
+  const handleSetActiveId = useCallback((id) => {
+    userHasSelectedRef.current = true;
+    setActiveId(id);
+  }, []);
+
   const deleteSession = useCallback((id) => {
     setSessions(prev => {
       const next = prev.filter(s => s.id !== id);
@@ -566,7 +586,7 @@ export function ChatProvider({ children }) {
 
   return (
     <ChatContext.Provider value={{
-      sessions, activeId, setActiveId,
+      sessions, activeId, setActiveId: handleSetActiveId,
       activeSession, loading, error, setError,
       sidebarOpen, setSidebarOpen,
       rateLimitStats, setRateLimitStats,

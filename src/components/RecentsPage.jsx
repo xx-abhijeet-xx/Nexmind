@@ -4,7 +4,7 @@ import { useChat } from '../context/ChatContext';
 import './RecentsPage.css';
 
 export default function RecentsPage() {
-  const { sessions, setActiveId, newSession } = useChat();
+  const { sessions, setActiveId, newSession, dbLoading } = useChat();
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
@@ -14,12 +14,12 @@ export default function RecentsPage() {
 
   const openSession = (id) => {
     setActiveId(id);
-    navigate('/');
+    navigate('/chat/');
   };
 
   const handleNewSession = () => {
     newSession();
-    navigate('/');
+    navigate('/chat/');
   };
 
   return (
@@ -62,7 +62,12 @@ export default function RecentsPage() {
             }
 
             return (
-              <div key={s.id} className="recents-item" onClick={() => openSession(s.id)}>
+              <div
+                key={s.id}
+                className={`recents-item ${dbLoading ? 'recents-item--loading' : ''}`}
+                onClick={() => !dbLoading && openSession(s.id)}
+                style={{ opacity: dbLoading ? 0.5 : 1, cursor: dbLoading ? 'wait' : 'pointer' }}
+              >
                 <div className="recents-item-main">
                   <div className="recents-item-title">{s.title}</div>
                   <div className="recents-item-meta">Last message {timeInfo}</div>

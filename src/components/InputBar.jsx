@@ -397,7 +397,7 @@ export default function InputBar({ isNewChat }) {
           onKeyDown={handleKey}
           onPaste={handlePaste}
           rows={1}
-          disabled={loading}
+          disabled={false}
         />
         {slashOpen && (() => {
           const filtered = SLASH_COMMANDS.filter(c =>
@@ -440,7 +440,7 @@ export default function InputBar({ isNewChat }) {
                 type="button"
                 title="Attach Files (Images/PDFs)"
                 onClick={openAttachmentPicker}
-                disabled={loading}
+                disabled={false}
                 aria-label="Attach Files"
               >
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
@@ -469,7 +469,7 @@ export default function InputBar({ isNewChat }) {
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
               aria-label="Selected model"
-              disabled={loading}
+              disabled={false}
               style={{ paddingLeft: '8px', paddingRight: '24px', fontSize: '12px', fontWeight: '500', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'transparent', color: 'var(--text-secondary)', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'rgba(255,255,255,0.5)\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")' }}
             >
               <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
@@ -497,7 +497,7 @@ export default function InputBar({ isNewChat }) {
               title={listening ? 'Listening...' : 'Voice input'}
               type="button"
               onClick={startVoice}
-              disabled={loading}
+              disabled={false}
               aria-label={listening ? 'Stop voice input' : 'Start voice input'}
             >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">

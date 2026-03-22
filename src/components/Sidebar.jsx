@@ -23,12 +23,12 @@ export default function Sidebar() {
 
   const handleNewSession = () => {
     newSession();
-    navigate('/');
+    navigate('/chat/');
   };
 
   const handleSelectSession = (id) => {
     setActiveId(id);
-    navigate('/');
+    navigate('/chat/');
   };
 
   const filtered = sessions.filter(s =>
@@ -126,7 +126,7 @@ export default function Sidebar() {
             className="nav-btn" 
             type="button" 
             title="Chat History"
-            onClick={() => navigate('/recents')}
+            onClick={() => navigate('/chat/recents')}
             style={{ justifyContent: 'center', padding: '10px 0' }}
           >
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16">
