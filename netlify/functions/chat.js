@@ -6,6 +6,36 @@ const { MemoryClient } = require("mem0ai");
 const { classifyQuery } = require("./utils/classifier");
 const { toolsConfig, toolExecutors } = require("./utils/tools");
 
+// ── API Key Rotation ──
+function getKeyPool(prefix) {
+  const keys = [];
+  for (let i = 1; i <= 10; i++) {
+    const k = process.env[`${prefix}_${i}`];
+    if (k) keys.push(k);
+  }
+  if (process.env[prefix]) keys.push(process.env[prefix]);
+  return [...new Set(keys)].filter(Boolean);
+}
+
+const groqKeys   = getKeyPool('GROQ_API_KEY');
+const geminiKeys = getKeyPool('GEMINI_API_KEY');
+let groqIdx   = 0;
+let geminiIdx = 0;
+
+function nextGroqKey() {
+  if (!groqKeys.length) return null;
+  const key = groqKeys[groqIdx % groqKeys.length];
+  groqIdx++;
+  return key;
+}
+
+function nextGeminiKey() {
+  if (!geminiKeys.length) return null;
+  const key = geminiKeys[geminiIdx % geminiKeys.length];
+  geminiIdx++;
+  return key;
+}
+
 // Model selection based on task
 function getModel(type) {
   switch (type) {
@@ -112,7 +142,7 @@ exports.handler = async (event, context) => {
     let toolsUsed = false;
 
     if (modelId.startsWith("gemini")) {
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+      const genAI = new GoogleGenerativeAI(nextGeminiKey() || process.env.GOOGLE_GENERATIVE_AI_API_KEY);
       const geminiModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: systemPrompt });
 
       let geminiHistory = history.slice(-6).map((m) => ({
@@ -144,15 +174,37 @@ exports.handler = async (event, context) => {
           mockWrite(`data: ${JSON.stringify({ content: chunkText })}\n\n`);
         }
       } catch (geminiErr) {
-        if (geminiErr.status === 429 || Math.floor(geminiErr.status) === 429) {
-          mockWrite(`data: ${JSON.stringify({ error: "Rate limit reached for " + modelId, done: true })}\n\n`);
-          return { statusCode: 200, headers: CORS_HEADERS, body: sseBuffer };
+        if (geminiErr.status === 429 || Math.floor(geminiErr.status) === 429 || (geminiErr.message && geminiErr.message.includes('429'))) {
+          let retried = false;
+          for (let attempt = 0; attempt < geminiKeys.length - 1; attempt++) {
+            try {
+              const fallbackKey = nextGeminiKey();
+              const fallbackAI = new GoogleGenerativeAI(fallbackKey);
+              const fallbackModel = fallbackAI.getGenerativeModel({ model: modelId, systemInstruction: systemPrompt });
+              const fallbackChat = fallbackModel.startChat({ history: geminiHistory });
+              const retryStream = await fallbackChat.sendMessageStream(userMessageParts);
+              for await (const chunk of retryStream.stream) {
+                const chunkText = chunk.text();
+                finalResponseText += chunkText;
+                mockWrite(`data: ${JSON.stringify({ content: chunkText })}\n\n`);
+              }
+              retried = true;
+              break;
+            } catch (retryErr) {
+              if (retryErr.status !== 429 && Math.floor(retryErr.status) !== 429 && !(retryErr.message && retryErr.message.includes('429'))) throw retryErr;
+            }
+          }
+          if (!retried) {
+            mockWrite(`data: ${JSON.stringify({ error: "All Gemini keys rate limited. Try again in a minute.", done: true })}\n\n`);
+            return { statusCode: 200, headers: CORS_HEADERS, body: sseBuffer };
+          }
+        } else {
+          throw geminiErr;
         }
-        throw geminiErr;
       }
     } else {
       // ── Groq Flow ──
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const groq = new Groq({ apiKey: nextGroqKey() });
       try {
         const stream = await groq.chat.completions.create({
           model: modelId,
@@ -218,8 +270,35 @@ exports.handler = async (event, context) => {
           }
         }
       } catch (groqErr) {
-        mockWrite(`data: ${JSON.stringify({ error: "Rate limit reached for " + modelId, done: true })}\n\n`);
-        return { statusCode: 200, headers: CORS_HEADERS, body: sseBuffer };
+        if (groqErr.status === 429 || (groqErr.message && groqErr.message.includes('429')) || (groqErr.message && groqErr.message.includes('Rate limit reached'))) {
+          let retried = false;
+          for (let attempt = 0; attempt < groqKeys.length - 1; attempt++) {
+            try {
+              const fallbackGroq = new Groq({ apiKey: nextGroqKey() });
+              const retryStream = await fallbackGroq.chat.completions.create({
+                model: modelId, messages, tools: toolsConfig,
+                tool_choice: "auto", max_tokens: 2048, temperature: 0.7, stream: true,
+              });
+              for await (const chunk of retryStream) {
+                let delta = chunk.choices[0]?.delta || {};
+                if (delta.content) {
+                  finalResponseText += delta.content;
+                  mockWrite(`data: ${JSON.stringify({ content: delta.content })}\n\n`);
+                }
+              }
+              retried = true;
+              break;
+            } catch (retryErr) {
+              if (retryErr.status !== 429 && !(retryErr.message && retryErr.message.includes('429')) && !(retryErr.message && retryErr.message.includes('Rate limit reached'))) throw retryErr;
+            }
+          }
+          if (!retried) {
+            mockWrite(`data: ${JSON.stringify({ error: "All Groq keys rate limited. Try again in a minute.", done: true })}\n\n`);
+            return { statusCode: 200, headers: CORS_HEADERS, body: sseBuffer };
+          }
+        } else {
+          throw groqErr;
+        }
       }
     }
 

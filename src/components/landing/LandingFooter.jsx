@@ -1,6 +1,96 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+
+function FooterModal({ modal, onClose }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  let title = '';
+  let content = null;
+
+  if (modal === 'privacy') {
+    title = 'Privacy Policy';
+    content = (
+      <>
+        <p>Last updated: January 2025</p>
+        <p>Chymera collects only the information necessary to provide the service:</p>
+        <ul>
+          <li><strong>Account data:</strong> email address and name provided during signup via Supabase Auth</li>
+          <li><strong>Conversation data:</strong> messages are processed in real-time and not permanently stored on our servers</li>
+          <li><strong>Memory data:</strong> with your permission, key facts about your preferences are stored via Mem0 to personalise future conversations</li>
+          <li><strong>Usage data:</strong> basic request logs for debugging and rate limiting</li>
+        </ul>
+        <p>We do not sell your data. We do not share your data with third parties except the AI providers (Groq, Google) who process your messages to generate responses. Their respective privacy policies apply to that processing.</p>
+        <p>You can delete your account and all associated data at any time by contacting us.</p>
+      </>
+    );
+  } else if (modal === 'terms') {
+    title = 'Terms of Service';
+    content = (
+      <>
+        <p>Last updated: January 2025</p>
+        <p>By using Chymera you agree to:</p>
+        <ul>
+          <li>Use the service for lawful purposes only</li>
+          <li>Not attempt to abuse, reverse-engineer, or overload the service</li>
+          <li>Not use the service to generate harmful, illegal, or deceptive content</li>
+          <li>Accept that AI responses may be inaccurate — always verify important information</li>
+        </ul>
+        <p>Chymera is provided as-is. We reserve the right to suspend accounts that violate these terms.</p>
+        <p>The service is free during beta. We may introduce paid plans in the future with advance notice.</p>
+      </>
+    );
+  } else if (modal === 'cookies') {
+    title = 'Cookie Policy';
+    content = (
+      <>
+        <p>Last updated: January 2025</p>
+        <p>Chymera uses minimal cookies:</p>
+        <ul>
+          <li><strong>Authentication cookies:</strong> set by Supabase to maintain your login session. Essential — cannot be disabled.</li>
+          <li>No advertising cookies</li>
+          <li>No third-party tracking cookies</li>
+          <li>No analytics cookies</li>
+        </ul>
+        <p>By using Chymera, you consent to these essential session cookies. You can clear them at any time through your browser settings, which will log you out.</p>
+      </>
+    );
+  } else if (modal === 'contact') {
+    title = 'Contact Us';
+    content = (
+      <>
+        <p>Have a question, found a bug, or want to collaborate?</p>
+        <p>Email: <a href="mailto:contact.abhijeetverma@gmail.com" className="modal-link">contact.abhijeetverma@gmail.com</a></p>
+        <p>Portfolio: <a href="https://abhijeetbuilds.netlify.app/" target="_blank" rel="noopener noreferrer" className="modal-link">https://abhijeetbuilds.netlify.app/</a></p>
+        <p>GitHub: <a href="https://github.com/xx-abhijeet-xx" target="_blank" rel="noopener noreferrer" className="modal-link">https://github.com/xx-abhijeet-xx</a></p>
+        <p>LinkedIn: <a href="https://www.linkedin.com/in/abhijeet-verma-dev/" target="_blank" rel="noopener noreferrer" className="modal-link">https://www.linkedin.com/in/abhijeet-verma-dev/</a></p>
+        <p>Typical response time: within 48 hours.</p>
+      </>
+    );
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">{title}</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
+        </div>
+        <div className="modal-body">
+          {content}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingFooter() {
+  const [activeModal, setActiveModal] = useState(null);
+
   const scrollToTop = (e) => {
     e.preventDefault();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -21,19 +111,19 @@ export default function LandingFooter() {
           </a>
           <p className="foot-tagline">One interface for every AI model you need. Think faster, build better.</p>
           <div className="foot-social">
-            <a href="https://twitter.com" className="social-btn" title="Twitter/X" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.261 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-              </svg>
-            </a>
-            <a href="https://github.com" className="social-btn" title="GitHub" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+            <a href="https://github.com/xx-abhijeet-xx" className="social-btn" title="GitHub" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
               </svg>
             </a>
-            <a href="https://linkedin.com" className="social-btn" title="LinkedIn" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+            <a href="https://www.linkedin.com/in/abhijeet-verma-dev/" className="social-btn" title="LinkedIn" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+            </a>
+            <a href="https://abhijeetbuilds.netlify.app/" className="social-btn" title="Portfolio" target="_blank" rel="noopener noreferrer" aria-label="Portfolio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
               </svg>
             </a>
           </div>
@@ -61,13 +151,13 @@ export default function LandingFooter() {
         </div>
 
         <div>
-          <div className="foot-col-title">Legal</div>
-          <ul className="foot-links">
-            <li><a href="#">Privacy policy</a></li>
-            <li><a href="#">Terms of service</a></li>
-            <li><a href="#">Cookie policy</a></li>
-            <li><a href="#">Contact us</a></li>
-          </ul>
+           <div className="foot-col-title">Legal</div>
+           <ul className="foot-links">
+             <li><a href="javascript:void(0)" onClick={() => setActiveModal('privacy')}>Privacy policy</a></li>
+             <li><a href="javascript:void(0)" onClick={() => setActiveModal('terms')}>Terms of service</a></li>
+             <li><a href="javascript:void(0)" onClick={() => setActiveModal('cookies')}>Cookie policy</a></li>
+             <li><a href="javascript:void(0)" onClick={() => setActiveModal('contact')}>Contact us</a></li>
+           </ul>
         </div>
       </div>
 
@@ -77,11 +167,13 @@ export default function LandingFooter() {
           <div className="badge-pulse"></div>Live · All systems operational
         </div>
         <div className="foot-legal">
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
-          <a href="#">Cookies</a>
+          <a href="javascript:void(0)" onClick={() => setActiveModal('privacy')}>Privacy</a>
+          <a href="javascript:void(0)" onClick={() => setActiveModal('terms')}>Terms</a>
+          <a href="javascript:void(0)" onClick={() => setActiveModal('cookies')}>Cookies</a>
         </div>
       </div>
+      
+      {activeModal && <FooterModal modal={activeModal} onClose={() => setActiveModal(null)} />}
     </footer>
   );
 }
