@@ -77,9 +77,28 @@ export default function InputBar({ isNewChat }) {
   const [isFocused, setIsFocused] = useState(false);
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashFilter, setSlashFilter] = useState('');
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const textareaRef = useRef(null);
   const attachmentInputRef = useRef(null);
   const recognitionRef = useRef(null);
+  const modelMenuRef = useRef(null);
+
+  const MODELS = [
+    { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', icon: '🦙' },
+    { id: 'gemini-2.5-pro-preview-03-25', name: 'Gemini 2.5 Pro', icon: '✨' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', icon: '⚡' },
+  ];
+
+  useEffect(() => {
+    if (!modelMenuOpen) return;
+    const handleClick = (e) => {
+      if (modelMenuRef.current && !modelMenuRef.current.contains(e.target)) {
+        setModelMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [modelMenuOpen]);
 
   useEffect(() => {
     const onEdit = (e) => {
@@ -450,18 +469,47 @@ export default function InputBar({ isNewChat }) {
               </button>
             </div>
           <div className="input-right">
-            <select
-              className="model-select"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              aria-label="Selected model"
-              disabled={false}
-              style={{ paddingLeft: '8px', paddingRight: '24px', fontSize: '12px', fontWeight: '500', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'transparent', color: 'var(--text-secondary)', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'rgba(255,255,255,0.5)\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")' }}
-            >
-              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-              <option value="gemini-2.5-pro-preview-03-25">Gemini 2.5 Pro</option>
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-            </select>
+            <div className="custom-model-select" ref={modelMenuRef}>
+              <button 
+                className="model-select-btn" 
+                type="button" 
+                onClick={() => setModelMenuOpen(!modelMenuOpen)}
+                aria-label="Select model"
+                title="Select model"
+                disabled={loading}
+              >
+                <span className="model-select-icon">{MODELS.find(m => m.id === selectedModel)?.icon || '🤖'}</span>
+                <span className="model-select-name">{MODELS.find(m => m.id === selectedModel)?.name}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14" style={{marginLeft: '2px', opacity: 0.6}}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+
+              {modelMenuOpen && (
+                <div className="model-dropdown-menu">
+                  <div className="model-dropdown-header">Select Model</div>
+                  {MODELS.map(m => (
+                    <button
+                      key={m.id}
+                      className={`model-dropdown-item ${selectedModel === m.id ? 'model-dropdown-item--active' : ''}`}
+                      onClick={() => {
+                        setSelectedModel(m.id);
+                        setModelMenuOpen(false);
+                      }}
+                      type="button"
+                    >
+                      <span className="model-item-icon">{m.icon}</span>
+                      <span className="model-item-name">{m.name}</span>
+                      {selectedModel === m.id && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16" style={{marginLeft: 'auto'}}>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/>
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {loading ? (
               <button
                 className="stop-btn"
