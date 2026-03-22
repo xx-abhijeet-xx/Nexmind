@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -9,6 +9,19 @@ import './Message.css';
 
 function SourcesPill({ sources }) {
   const [open, setOpen] = useState(false);
+  const pillRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (pillRef.current && !pillRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
   if (!sources || sources.length === 0) {
     return (
       <span className="msg-tag msg-tag--search">
@@ -20,7 +33,7 @@ function SourcesPill({ sources }) {
     );
   }
   return (
-    <div className="sources-wrap">
+    <div className="sources-wrap" ref={pillRef}>
       <button
         className="msg-tag msg-tag--search sources-pill"
         onClick={() => setOpen(o => !o)}
