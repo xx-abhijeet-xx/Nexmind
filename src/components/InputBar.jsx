@@ -314,6 +314,50 @@ export default function InputBar({ isNewChat }) {
     }
   };
 
+  const handlePaste = (e) => {
+    const clipboardItems = e.clipboardData?.items;
+    if (!clipboardItems) return;
+
+    // Check if any clipboard item is an image
+    const imageItems = Array.from(clipboardItems).filter(
+      item => item.type.startsWith('image/')
+    );
+
+    if (imageItems.length === 0) return;
+
+    // Prevent default paste behaviour for image pastes
+    // (so the image data doesn't get pasted as text)
+    e.preventDefault();
+
+    imageItems.forEach(item => {
+      const file = item.getAsFile();
+      if (!file) return;
+
+      const id = uuid();
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        // Generate a readable name with timestamp
+        const ext = file.type.split('/')[1] || 'png';
+        const name = `pasted-image-${Date.now()}.${ext}`;
+
+        setAttachments(prev => [
+          ...prev,
+          {
+            id,
+            type: file.type,
+            file,
+            name,
+            previewUrl: reader.result,
+            progress: 100,
+          }
+        ]);
+      };
+
+      reader.readAsDataURL(file);
+    });
+  };
+
   return (
     <div className="inputbar">
       <UsageBanner />
@@ -335,7 +379,7 @@ export default function InputBar({ isNewChat }) {
         <textarea
           ref={textareaRef}
           className="input-textarea"
-          placeholder="Message Chymera..."
+          placeholder="Message Chymera... (Ctrl+V to paste image)"
           aria-label="Message input"
           value={text}
           onChange={e => {
@@ -351,6 +395,7 @@ export default function InputBar({ isNewChat }) {
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           onKeyDown={handleKey}
+          onPaste={handlePaste}
           rows={1}
           disabled={loading}
         />

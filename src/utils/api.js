@@ -206,31 +206,29 @@ export function detectFileRequest(message) {
   // Build alternation pattern: md|markdown|txt|text|...
   const allPatterns = fileTypePatterns.flatMap(ft => ft.patterns).join('|');
   
-  // Match: (create|generate|write|make) + optional (a|an) + optional (downloadable) + file type + optional (file) + optional (with|containing|etc)
+  // Match: (create|generate|write|make) + optional (a|an) + optional (downloadable) + (file type) + optional (file) + optional (with|containing|etc)
   const pattern = new RegExp(
-    `(create|generate|write|make)\\s+(?:a\\s+|an\\s+)?(?:downloadable\\s+)?(?:\\b(?:${allPatterns})\\b)(?:\\s+file)?(?:\\s+(?:with|containing|from|called))?\\s*(.*)`,
+    `(create|generate|write|make)\\s+(?:a\\s+|an\\s+)?(?:downloadable\\s+)?(\\b(?:${allPatterns})\\b)(?:\\s+file)?(?:\\s+(?:with|containing|from|called))?\\s*(.*)`,
     'i'
   );
   
   const match = text.match(pattern);
   if (!match) return null;
 
-  // Extract file type from the message
+  // Extract file type from the matched capture group
+  const matchedPattern = match[2].toLowerCase();
   let detectedExt = null;
   for (const ft of fileTypePatterns) {
-    for (const pat of ft.patterns) {
-      if (text.includes(pat)) {
-        detectedExt = ft.ext;
-        break;
-      }
+    if (ft.patterns.includes(matchedPattern)) {
+      detectedExt = ft.ext;
+      break;
     }
-    if (detectedExt) break;
   }
 
   if (!detectedExt) return null;
 
   // Extract prompt (everything after the pattern match)
-  const prompt = (match[2] || '').trim();
+  const prompt = (match[3] || '').trim();
 
   // Generate filename
   const fileName = `generated.${detectedExt}`;
