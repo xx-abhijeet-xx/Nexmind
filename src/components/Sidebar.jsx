@@ -38,15 +38,26 @@ export default function Sidebar() {
   return (
     <aside className={`sidebar ${sidebarOpen ? '' : 'sidebar--closed'}`}>
       <div className="sb-topbar">
-        <div className="sb-brand">
-          <span className="sb-name">Chymera</span>
-        </div>
-        <button className="icon-btn" type="button" onClick={() => setSidebarOpen(false)} title="Close sidebar" aria-label="Close sidebar">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
-            <rect x="2" y="2" width="12" height="12" rx="2"/>
-            <line x1="6" y1="2" x2="6" y2="14"/>
-          </svg>
-        </button>
+        {sidebarOpen ? (
+          <>
+            <div className="sb-brand">
+              <span className="sb-name">Chymera</span>
+            </div>
+            <button className="icon-btn" type="button" onClick={() => setSidebarOpen(false)} title="Close sidebar" aria-label="Close sidebar">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
+                <rect x="2" y="2" width="12" height="12" rx="2"/>
+                <line x1="6" y1="2" x2="6" y2="14"/>
+              </svg>
+            </button>
+          </>
+        ) : (
+          <button className="icon-btn sb-expand-btn" type="button" onClick={() => setSidebarOpen(true)} title="Expand sidebar" aria-label="Expand sidebar">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
+              <rect x="2" y="2" width="12" height="12" rx="2"/>
+              <line x1="10" y1="2" x2="10" y2="14"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       <div className="sb-nav">
@@ -57,7 +68,7 @@ export default function Sidebar() {
           <span className="nav-btn-text">New chat</span>
         </button>
 
-        {searching ? (
+        {searching && sidebarOpen ? (
           <div className="search-wrap">
             <input
               className="search-input"
@@ -65,18 +76,16 @@ export default function Sidebar() {
               placeholder="Search chats..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              onBlur={() => { if (!search) setSearching(false); }}
+              onBlur={() => { if (!search && sidebarOpen) setSearching(false); }}
             />
-            {search && (
-              <button className="icon-btn search-clear" type="button" onClick={() => { setSearch(''); setSearching(false); }} aria-label="Clear search">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
-                  <line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/>
-                </svg>
-              </button>
-            )}
+            <button className="icon-btn search-clear" type="button" onClick={() => { setSearch(''); setSearching(false); }} aria-label="Close search">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                <line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/>
+              </svg>
+            </button>
           </div>
         ) : (
-          <button className="nav-btn" type="button" onClick={() => setSearching(true)} title="Search">
+          <button className="nav-btn" type="button" onClick={() => { setSidebarOpen(true); setSearching(true); }} title="Search">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
               <circle cx="6" cy="6" r="4"/><line x1="10" y1="10" x2="14" y2="14"/>
             </svg>
@@ -173,19 +182,21 @@ export default function Sidebar() {
       </div>
 
       <div className="sb-footer">
-        <div className="user-row" title={user?.user_metadata?.full_name || user?.email || 'User'}>
-          <div className="user-av">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email || 'U')[0]?.toUpperCase()}</div>
-          <div className="footer-info">
-            <div className="user-name">{user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email?.split('@')[0] || 'User'}</div>
-            <div className="user-plan">Free plan</div>
+        <div className={`sb-footer-inner ${!sidebarOpen ? 'sb-footer-inner--collapsed' : ''}`}>
+          <div className="user-row" title={user?.user_metadata?.full_name || user?.email || 'User'}>
+            <div className="user-av">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email || 'U')[0]?.toUpperCase()}</div>
+            <div className="footer-info">
+              <div className="user-name">{user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email?.split('@')[0] || 'User'}</div>
+              <div className="user-plan">Free plan</div>
+            </div>
           </div>
-        </div>
-        <div className="footer-btns">
-          <button className="icon-btn" type="button" title="Sign out" aria-label="Sign out" onClick={handleSignOut}>
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
-              <path d="M6 2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2M10 12l4-4-4-4M14 8H6"/>
-            </svg>
-          </button>
+          <div className="footer-btns">
+            <button className="icon-btn" type="button" title="Sign out" aria-label="Sign out" onClick={handleSignOut}>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
+                <path d="M6 2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2M10 12l4-4-4-4M14 8H6"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </aside>

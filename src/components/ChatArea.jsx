@@ -27,11 +27,48 @@ function ThinkingIndicator() {
 export default function ChatArea() {
   const { activeSession, loading, error, setError, sidebarOpen, setSidebarOpen } = useChat();
   const bottomRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const isUserScrolledUpRef = useRef(false);
+  const prevLoadingRef = useRef(false);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+
   const isNewChat = activeSession.messages.length === 0;
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      isUserScrolledUpRef.current = distanceFromBottom > 150;
+      setShowScrollBtn(distanceFromBottom > 200);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const justFinishedLoading = prevLoadingRef.current && !loading;
+    prevLoadingRef.current = loading;
+
+    if (!isUserScrolledUpRef.current || justFinishedLoading) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (justFinishedLoading) {
+        isUserScrolledUpRef.current = false;
+      }
+    }
   }, [activeSession.messages, loading]);
+
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    isUserScrolledUpRef.current = false;
+    setShowScrollBtn(false);
+  };
 
   const copyConversation = () => {
     const text = activeSession.messages
@@ -55,16 +92,15 @@ export default function ChatArea() {
 
   return (
     <div className={`chat-area max-w-full overflow-x-hidden ${isNewChat ? 'chat-area--empty' : ''}`}>
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
       {!isNewChat && (
         <div className="chat-topbar">
-          {!sidebarOpen && (
-            <button className="icon-btn" type="button" onClick={() => setSidebarOpen(true)} title="Open sidebar" aria-label="Open sidebar">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
-                <rect x="2" y="2" width="12" height="12" rx="2" />
-                <line x1="6" y1="2" x2="6" y2="14" />
-              </svg>
-            </button>
-          )}
+          <button className="icon-btn" type="button" onClick={() => setSidebarOpen(true)} title="Open sidebar" aria-label="Open sidebar">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15">
+              <rect x="2" y="2" width="12" height="12" rx="2" />
+              <line x1="6" y1="2" x2="6" y2="14" />
+            </svg>
+          </button>
           <span className="topbar-title">{activeSession.title}</span>
           <button className="icon-btn" type="button" onClick={copyConversation} title="Copy conversation" aria-label="Copy conversation">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
@@ -89,7 +125,26 @@ export default function ChatArea() {
         </div>
       )}
 
-      <div className="chat-messages max-w-full overflow-x-hidden">
+      {showScrollBtn && (
+        <button
+          className="scroll-to-bottom-btn"
+          type="button"
+          onClick={scrollToBottom}
+          title="Scroll to latest"
+          aria-label="Scroll to latest message"
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+            <line x1="8" y1="2" x2="8" y2="12"/>
+            <polyline points="4,8 8,13 12,8"/>
+          </svg>
+          Latest
+        </button>
+      )}
+
+      <div 
+        className="chat-messages max-w-full overflow-x-hidden" 
+        ref={messagesContainerRef}
+      >
         {!isNewChat && activeSession.messages.map(msg => {
           if (msg.role === 'assistant' && msg.isThinking) {
             return <ThinkingIndicator key={msg.id} />;

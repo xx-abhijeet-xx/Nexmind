@@ -219,9 +219,8 @@ const StarIcon = () => (
 );
 
 export default function Message({ msg }) {
-  const { regenerate } = useChat();
+  const { regenerate, editMessage } = useChat();
   const isUser = msg.role === 'user';
-  const [liked, setLiked] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const downloadable = useMemo(() => parseDownloadable(msg.content), [msg.content]);
 
@@ -328,43 +327,19 @@ export default function Message({ msg }) {
               </svg>
             </button>
             <button
-              className={`action-icon ${liked === true ? 'action-icon--active' : ''}`}
+              className="action-icon"
               type="button"
-              onClick={() => setLiked(liked === true ? null : true)}
-              title="Good response"
-              aria-label="Mark response as good"
+              onClick={() => regenerate(msg.id)}
+              title="Regenerate response"
+              aria-label="Regenerate response"
             >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
-                <path d="M5 9V6l3-4 1 1-1 3h4l-1 6H5V9z"/><line x1="3" y1="9" x2="3" y2="15"/>
+                <path d="M2 8a6 6 0 016-6 6 6 0 014.5 2"/>
+                <path d="M14 8a6 6 0 01-6 6 6 6 0 01-4.5-2"/>
+                <polyline points="10,2 14,2 14,6"/>
+                <polyline points="6,14 2,14 2,10"/>
               </svg>
             </button>
-            <button
-              className={`action-icon ${liked === false ? 'action-icon--active' : ''}`}
-              type="button"
-              onClick={() => setLiked(liked === false ? null : false)}
-              title="Bad response"
-              aria-label="Mark response as bad"
-            >
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
-                <path d="M11 7v3l-3 4-1-1 1-3H4l1-6h6v3z"/><line x1="13" y1="7" x2="13" y2="1"/>
-              </svg>
-            </button>
-            {msg.isLast && (
-              <button
-                className="action-icon"
-                type="button"
-                onClick={regenerate}
-                title="Regenerate response"
-                aria-label="Regenerate response"
-              >
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
-                  <path d="M2 8a6 6 0 016-6 6 6 0 014.5 2"/>
-                  <path d="M14 8a6 6 0 01-6 6 6 6 0 01-4.5-2"/>
-                  <polyline points="10,2 14,2 14,6"/>
-                  <polyline points="6,14 2,14 2,10"/>
-                </svg>
-              </button>
-            )}
             {downloadable && (
               <button
                 className="action-icon"
@@ -397,6 +372,17 @@ export default function Message({ msg }) {
             >
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
                 <rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V3H2v9h2"/>
+              </svg>
+            </button>
+            <button
+              className="action-icon"
+              type="button"
+              onClick={() => editMessage(msg.id)}
+              title="Edit message"
+              aria-label="Edit message"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
+                <path d="M11 2l3 3L5 14H2v-3L11 2z"/>
               </svg>
             </button>
           </div>

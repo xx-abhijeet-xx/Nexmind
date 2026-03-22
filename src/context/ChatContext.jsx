@@ -11,11 +11,7 @@ function createDefaultSession() {
 }
 
 function markLastAssistant(messages) {
-  const lastAiIndex = messages.map(m => m.role).lastIndexOf('assistant');
-  return messages.map((m, i) => ({
-    ...m,
-    isLast: i === lastAiIndex && m.role === 'assistant',
-  }));
+  return messages;
 }
 
 function loadStoredState() {
@@ -538,30 +534,51 @@ export function ChatProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const regenerate = useCallback(async () => {
+  const regenerate = useCallback(async (messageId) => {
     if (loading) return;
 
     const messages = activeSession.messages;
-
-    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
-    if (!lastUserMsg) return;
-
-    const lastAssistantIndex = messages.map(m => m.role).lastIndexOf('assistant');
-
-    if (lastAssistantIndex !== -1) {
-      setSessions(prev => prev.map(s => {
-        if (s.id !== activeId) return s;
-        return {
-          ...s,
-          messages: s.messages.slice(0, lastAssistantIndex)
-        };
-      }));
-    }
+    
+    const aiMsgIndex = messageId 
+      ? messages.findIndex(m => m.id === messageId)
+      : messages.map(m => m.role).lastIndexOf('assistant');
+    
+    if (aiMsgIndex === -1) return;
+    
+    const precedingUserMsg = [...messages]
+      .slice(0, aiMsgIndex)
+      .reverse()
+      .find(m => m.role === 'user');
+    
+    if (!precedingUserMsg) return;
+    
+    setSessions(prev => prev.map(s => {
+      if (s.id !== activeId) return s;
+      return { ...s, messages: s.messages.slice(0, aiMsgIndex) };
+    }));
 
     await new Promise(r => setTimeout(r, 100));
+    await send(precedingUserMsg.content);
 
-    await send(lastUserMsg.content);
   }, [activeId, activeSession, loading, send]);
+
+  const editMessage = useCallback((messageId) => {
+    const messages = activeSession.messages;
+    const msgIndex = messages.findIndex(m => m.id === messageId);
+    if (msgIndex === -1) return;
+
+    const msg = messages[msgIndex];
+    if (msg.role !== 'user') return;
+
+    document.dispatchEvent(new CustomEvent('chymera:editMessage', {
+      detail: { content: msg.content }
+    }));
+
+    setSessions(prev => prev.map(s => {
+      if (s.id !== activeId) return s;
+      return { ...s, messages: s.messages.slice(0, msgIndex) };
+    }));
+  }, [activeId, activeSession]);
 
   const handleSetActiveId = useCallback((id) => {
     userHasSelectedRef.current = true;
@@ -590,7 +607,7 @@ export function ChatProvider({ children }) {
       activeSession, loading, error, setError,
       sidebarOpen, setSidebarOpen,
       rateLimitStats, setRateLimitStats,
-      newSession, send, deleteSession, regenerate, stopGeneration,
+      newSession, send, deleteSession, regenerate, stopGeneration, editMessage,
       updateTitle,
       uploadPdf,
       artifactViewerOpen,

@@ -10,7 +10,7 @@
 }
 
 .sidebar--closed {
-  width: 64px;
+  width: 56px;
   overflow: hidden;
   border-right: 1px solid var(--border);
 }
@@ -20,8 +20,7 @@
 .sidebar--closed .sb-label,
 .sidebar--closed .chat-row__title,
 .sidebar--closed .chat-row__del,
-.sidebar--closed .footer-info,
-.sidebar--closed .search-input {
+.sidebar--closed .footer-info {
   display: none;
 }
 
@@ -30,9 +29,7 @@
   padding: 0;
 }
 
-.sidebar--closed .sb-topbar .icon-btn {
-  display: none; /* Hide the collapse toggle button since ChatArea shows a hamburger */
-}
+
 
 .sidebar--closed .sb-brand {
   margin: 0 auto;
@@ -47,13 +44,7 @@
   margin: 0;
 }
 
-.sidebar--closed .search-wrap {
-  padding: 0;
-  border: none;
-  background: transparent;
-  justify-content: center;
-  margin: 0;
-}
+
 
 .sidebar--closed .chat-row {
   justify-content: center;
@@ -72,6 +63,12 @@
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+}
+
+.sb-expand-btn {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto;
 }
 
 .sb-brand { display: flex; align-items: center; gap: 8px; }
@@ -195,6 +192,19 @@
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+}
+
+.sb-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.sb-footer-inner--collapsed {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .user-row { display: flex; align-items: center; gap: 8px; }

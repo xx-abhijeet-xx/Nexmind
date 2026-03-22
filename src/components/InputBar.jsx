@@ -77,13 +77,19 @@ export default function InputBar({ isNewChat }) {
   const [isFocused, setIsFocused] = useState(false);
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashFilter, setSlashFilter] = useState('');
-  const [responseLength, setResponseLength] = useState('normal');
   const textareaRef = useRef(null);
   const attachmentInputRef = useRef(null);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
+    const onEdit = (e) => {
+      const { content } = e.detail;
+      setText(content);
+      setTimeout(() => textareaRef.current?.focus(), 50);
+    };
+    document.addEventListener('chymera:editMessage', onEdit);
     return () => {
+      document.removeEventListener('chymera:editMessage', onEdit);
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
@@ -138,13 +144,7 @@ export default function InputBar({ isNewChat }) {
       return;
     }
 
-    const lengthSuffix = {
-      concise: '\n\n[Keep your response concise — 2 to 3 sentences max unless code is required.]',
-      normal: '',
-      detailed: '\n\n[Be thorough. Cover edge cases, tradeoffs, and give examples.]',
-    }[responseLength];
-
-    send((trimmed + lengthSuffix).trim(), {
+    send(trimmed, {
       imagesBase64: attachments.filter(a => a.type.startsWith('image/')).map(a => a.previewUrl),
       documentContexts: attachments.filter(a => a.documentContext).map(a => a.documentContext),
       modelId: selectedModel
@@ -449,20 +449,6 @@ export default function InputBar({ isNewChat }) {
                 </svg>
               </button>
             </div>
-            <div className="length-toggle">
-              {['concise', 'normal', 'detailed'].map(l => (
-                <button
-                  key={l}
-                  type="button"
-                  className={`length-btn ${responseLength === l ? 'length-btn--active' : ''}`}
-                  onClick={() => setResponseLength(l)}
-                  title={l.charAt(0).toUpperCase() + l.slice(1)}
-                  disabled={loading}
-                >
-                  {l === 'concise' ? 'S' : l === 'normal' ? 'M' : 'L'}
-                </button>
-              ))}
-            </div>
           <div className="input-right">
             <select
               className="model-select"
@@ -476,22 +462,32 @@ export default function InputBar({ isNewChat }) {
               <option value="gemini-2.5-pro-preview-03-25">Gemini 2.5 Pro</option>
               <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
             </select>
-            <button
-              className={`send-btn ${(text.trim() || attachments.length > 0) && !loading ? 'send-btn--active' : ''}`}
-              type="button"
-              onClick={handleSend}
-              disabled={(!text.trim() && attachments.length === 0) || loading}
-              title="Send (Enter)"
-              aria-label="Send message"
-            >
-              {loading ? (
-                <div className="spinner" onClick={stopGeneration} style={{cursor:'pointer'}} title="Stop generation" />
-              ) : (
+            {loading ? (
+              <button
+                className="stop-btn"
+                type="button"
+                onClick={stopGeneration}
+                title="Stop generation"
+                aria-label="Stop generation"
+              >
+                <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12">
+                  <rect x="3" y="3" width="10" height="10" rx="2"/>
+                </svg>
+              </button>
+            ) : (
+              <button
+                className={`send-btn ${(text.trim() || attachments.length > 0) ? 'send-btn--active' : ''}`}
+                type="button"
+                onClick={handleSend}
+                disabled={!text.trim() && attachments.length === 0}
+                title="Send (Enter)"
+                aria-label="Send message"
+              >
                 <svg viewBox="0 0 16 16" fill="black" width="13" height="13">
                   <path d="M2 8L14 2L8 14L7 9L2 8Z"/>
                 </svg>
-              )}
-            </button>
+              </button>
+            )}
             <button
               className={`input-icon-btn ${listening ? 'input-icon-btn--active' : ''}`}
               title={listening ? 'Listening...' : 'Voice input'}
