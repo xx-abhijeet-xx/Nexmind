@@ -55,6 +55,10 @@
   color: var(--text2);
 }
 
+.mobile-only-btn {
+  display: none;
+}
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -284,6 +288,10 @@
 }
 
 @media (max-width: 900px) {
+  .mobile-only-btn {
+    display: flex; /* Or inline-flex depending on original icon-btn */
+  }
+
   .chat-messages {
     padding: 20px 5% 16px;
   }

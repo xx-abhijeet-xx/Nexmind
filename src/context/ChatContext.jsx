@@ -495,7 +495,7 @@ export function ChatProvider({ children }) {
           messages: markLastAssistant(
             s.messages.map(m =>
               m.id === aiId
-                ? { ...m, streaming: false, ...metadata }
+                ? { ...m, streaming: false, isThinking: false, ...metadata }
                 : m
             )
           )
