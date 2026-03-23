@@ -7,6 +7,7 @@ import PageLoader from './components/PageLoader';
 
 const WorkspaceLayout = lazy(() => import('./components/WorkspaceLayout'));
 const PhoneCapture = lazy(() => import('./components/auth/PhoneCapture'));
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -56,7 +57,9 @@ export default function App() {
             path="/chat/*"
             element={
               <ProtectedRoute>
-                <WorkspaceLayout />
+                <ErrorBoundary>
+                  <WorkspaceLayout />
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />

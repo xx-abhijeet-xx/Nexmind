@@ -130,6 +130,7 @@ GET /health/keys shows real-time status of all keys
 |---|---|
 | React 18 | UI framework |
 | React Router v7 | Client-side routing |
+| React ErrorBoundary | Component crash isolation |
 | Supabase JS | Auth — email, password, Google OAuth |
 | React Markdown + remark-gfm | Render AI markdown responses |
 | React Syntax Highlighter | Code block syntax highlighting |
@@ -248,7 +249,7 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
 ```
 
-**Frontend `.env.local`:**
+**Frontend `.env.local` (see `.env.example`):**
 ```env
 REACT_APP_API_URL=http://localhost:8080
 REACT_APP_SUPABASE_URL=https://your-project.supabase.co
