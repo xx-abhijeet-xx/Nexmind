@@ -2,7 +2,7 @@
 
 > A production-grade, full-stack AI assistant with real-time streaming, live web search, persistent memory, vision, document understanding, voice input, and smart multi-model routing. Built with React + Node.js, deployed on Railway and Vercel.
 
-**Frontend:** [chymera.vercel.app](https://chymera.vercel.app)
+**Frontend:** [chymera.netlify.app](https://chymera.netlify.app)
 **Backend:** Deployed on Railway
 **Author:** Abhijeet Verma — [github.com/xx-abhijeet-xx](https://github.com/xx-abhijeet-xx) · [linkedin.com/in/abhijeet-verma-dev](https://linkedin.com/in/abhijeet-verma-dev)
 
