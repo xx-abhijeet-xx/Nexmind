@@ -398,7 +398,7 @@ export default function InputBar({ isNewChat }) {
         <textarea
           ref={textareaRef}
           className="input-textarea"
-          placeholder="Message Chymera... (Ctrl+V to paste image)"
+          placeholder="Message Chymera..."
           aria-label="Message input"
           value={text}
           onChange={e => {
