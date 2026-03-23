@@ -4,6 +4,7 @@ import { X, FileText, Image as ImageIcon, File as GenericFile } from 'lucide-rea
 import ContextualSuggestions from './ContextualSuggestions';
 import UsageBanner from './UsageBanner';
 import './InputBar.css';
+import { supabase } from '../config/supabase';
 
 import { v4 as uuid } from 'uuid';
 
