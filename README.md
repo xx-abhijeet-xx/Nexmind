@@ -1,241 +1,382 @@
 # Chymera — AI Assistant Platform
 
-> Production-grade AI assistant with real-time streaming, live web search, persistent memory, vision, and document understanding.
+> A production-grade, full-stack AI assistant with real-time streaming, live web search, persistent memory, vision, document understanding, voice input, and smart multi-model routing. Built with React + Node.js, deployed on Railway and Vercel.
 
-**Live:** https://chymera.netlify.app/
+**Frontend:** [chymera.vercel.app](https://chymera.vercel.app)
 **Backend:** Deployed on Railway
-**Author:** Abhijeet Verma — [github.com/xx-abhijeet-xx](https://github.com/xx-abhijeet-xx)
+**Author:** Abhijeet Verma — [github.com/xx-abhijeet-xx](https://github.com/xx-abhijeet-xx) · [linkedin.com/in/abhijeet-verma-dev](https://linkedin.com/in/abhijeet-verma-dev)
+
+---
+
+## What is Chymera?
+
+Chymera is a self-hosted AI assistant platform that rivals commercial tools like ChatGPT — built entirely with open source models and free APIs. Every query is automatically classified and routed to the best available model. It remembers your context across sessions, searches the web in real time, reads documents, analyzes images, and transcribes voice — all running free on Groq and Google's APIs.
+
+---
+
+## Features
+
+| Feature | Description |
+|---|---|
+| **Smart query routing** | Classifies every message into 7 types and routes to the best model automatically |
+| **Streaming responses** | Token-by-token rendering via SSE — words appear as they generate |
+| **Background streaming** | Web Worker keeps generation running even when tab is hidden or minimized |
+| **Live web search** | Automatically searches the internet for real-time data via Tavily |
+| **Persistent memory** | Remembers your name, projects, and preferences across sessions via Mem0 |
+| **Image understanding** | Upload screenshots, code photos, UI designs — AI analyzes them with Llama 4 Scout |
+| **PDF reading** | Upload PDFs — text is extracted, chunked, and injected into context |
+| **Voice input** | Record audio → transcribed by Groq Whisper in ~1-2 seconds |
+| **Wikipedia tool** | AI automatically calls Wikipedia for factual questions |
+| **GitHub tool** | AI reads README and files from any public GitHub repo |
+| **File generation** | Generate .md, .txt, .html, .js, .css, .json files and download them |
+| **Auto-title** | AI generates a descriptive chat title from the first message |
+| **Regenerate** | Retry any AI response from any point in the conversation |
+| **Edit messages** | Edit any sent message — removes subsequent messages and re-sends |
+| **Stop generation** | Cancel mid-stream with a dedicated stop button |
+| **Scroll to bottom** | Floating button appears when scrolled up, generation doesn't force-scroll |
+| **Prompt templates** | Pre-built developer templates on the empty state |
+| **Instant chitchat** | Single-word reactions get instant replies with zero API calls |
+| **Multi-session** | Create, switch, search, and delete multiple conversations |
+| **Export conversation** | Download any chat as a .txt file |
+| **Auth** | Email/password + Google OAuth via Supabase |
+| **Key rotation** | Automatic API key rotation with exponential backoff across up to 10 keys per provider |
+| **Auto-recovery** | Safely intercepts blank/failed API streams and automatically retries before showing a graceful fallback |
+| **Mobile responsive** | Full sidebar overlay, touch-friendly layout |
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────┐     ┌──────────────────────────────────┐
-│        Frontend (Vercel)            │     │       Backend (Railway)          │
-│        Nexmind-main/                │────▶│     my-ai-assistant-main/        │
-│                                     │     │                                  │
-│  React 18 + React Router v7         │     │  Node.js + Express 5             │
-│  Supabase Auth (JWT)                │     │  Groq SDK (Llama 3.3 / Qwen)     │
-│  SSE streaming consumer             │     │  Google Generative AI (Gemini)   │
-│  react-markdown + syntax highlight  │     │  Tavily web search               │
-│  lucide-react icons                 │     │  Mem0 persistent memory          │
-│  axios (PDF upload only)            │     │  Supabase JWT verification       │
-└─────────────────────────────────────┘     └──────────────────────────────────┘
+Browser (React 18)
+      │
+      │ HTTPS + SSE
+      ▼
+Express Backend (Railway)
+      │
+      ├── POST /chat ──────────► Query Classifier
+      │                               │
+      │              ┌────────────────┼─────────────────┐
+      │              ▼                ▼                  ▼
+      │         Groq API         Google Gemini      Tavily Search
+      │     (Llama / Qwen)      (2.5 Flash)        (web results)
+      │
+      ├── POST /chat/vision ───► Groq Llama 4 Scout (image analysis)
+      ├── POST /chat/title ────► Groq Llama 3.3 70B (title generation)
+      ├── POST /chat/transcribe► Groq Whisper (voice → text)
+      ├── POST /upload ────────► LangChain PDF processor
+      ├── POST /auth/signup ───► Supabase Auth
+      ├── POST /auth/login ────► Supabase Auth
+      └── GET  /health/keys ───► Key pool status
+```
+
+### Query Routing
+
+```
+User sends message
+      │
+      ▼
+classifier.js
+      │
+      ├── chitchat   → Llama 3.3 70B  (no tools, short response)
+      ├── coding     → Llama 3.3 70B  (code-focused)
+      ├── reasoning  → Qwen QwQ 32B   (math, logic, comparisons)
+      ├── creative   → Gemini 2.5 Flash (writing, stories, poems)
+      ├── search     → Llama 3.3 70B + Tavily (real-time web)
+      ├── factual    → Llama 3.3 70B + Wikipedia tool
+      └── general    → Llama 3.3 70B
+```
+
+### Key Rotation System
+
+Production-grade `KeyPool` class manages all API keys:
+
+```
+KeyPool tracks per-key state:
+  failures, cooldownUntil, totalRequests, totalFailures
+
+On 429 error:
+  markFailed(key) → exponential backoff
+    1st failure → 60s cooldown
+    2nd failure → 120s cooldown
+    3rd+ failure → 300s cooldown
+
+nextKey() skips all keys in cooldown
+  → if all exhausted, throws clean error with wait time
+
+GET /health/keys shows real-time status of all keys
 ```
 
 ---
 
-## Repository Structure
-
-```
-Nexmind-main/                          my-ai-assistant-main/
-├── public/                            ├── config/
-│   ├── index.html                     │   └── supabase.js
-│   ├── favicon.svg                    ├── controllers/
-│   ├── favicon.ico                    │   └── upload.controller.js
-│   ├── robots.txt                     ├── middleware/
-│   └── sitemap.xml                    │   └── auth.middleware.js
-├── netlify/                           ├── routes/
-│   └── functions/                     │   ├── auth.routes.js
-│       ├── chat.js                    │   ├── chat.js          ← main logic
-│       ├── upload.js                  │   └── upload.routes.js
-│       └── utils/ (mirrors backend)   ├── utils/
-├── src/                               │   ├── classifier.js
-│   ├── App.jsx                        │   ├── documentProcessor.js
-│   ├── index.js                       │   ├── systemPrompt.js
-│   ├── index.css                      │   └── tools.js
-│   ├── Assets/                        ├── server.js
-│   │   └── chymera-logo.svg           ├── package.json
-│   ├── components/                    └── Procfile
-│   │   ├── ArtifactViewer.jsx
-│   │   ├── ChatArea.jsx
-│   │   ├── ChatDropdownMenu.jsx
-│   │   ├── ContextualSuggestions.jsx
-│   │   ├── FileGenerator.jsx
-│   │   ├── InputBar.jsx
-│   │   ├── Message.jsx
-│   │   ├── PageLoader.jsx
-│   │   ├── RecentsPage.jsx
-│   │   ├── Sidebar.jsx
-│   │   ├── UsageBanner.jsx
-│   │   ├── WorkspaceLayout.jsx
-│   │   ├── auth/
-│   │   │   └── PhoneCapture.jsx
-│   │   └── landing/
-│   │       ├── AboutScroll.jsx
-│   │       ├── AuthCard.jsx
-│   │       ├── Capabilities.jsx
-│   │       ├── ChatDemo.jsx
-│   │       └── LandingFooter.jsx
-│   ├── config/
-│   │   └── supabase.js
-│   ├── context/
-│   │   ├── AuthContext.jsx
-│   │   └── ChatContext.jsx
-│   ├── pages/
-│   │   ├── Landing.jsx
-│   │   └── Landing.css
-│   └── utils/
-│       └── api.js
-├── package.json
-├── vercel.json
-└── netlify.toml
-```
-
----
-
-## Environment Variables
-
-### Backend (`my-ai-assistant-main/.env`)
-```env
-PORT=8080
-GROQ_API_KEY=your_groq_api_key
-GEMINI_API_KEY=your_gemini_api_key
-TAVILY_API_KEY=your_tavily_api_key
-MEM0_API_KEY=your_mem0_api_key
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-### Frontend (`Nexmind-main/.env`)
-```env
-REACT_APP_API_URL=https://your-railway-backend-url.railway.app
-REACT_APP_USER_ID=default_user
-REACT_APP_SUPABASE_URL=your_supabase_url
-REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
----
-
-## Local Development
+## Tech Stack
 
 ### Backend
-```bash
-cd my-ai-assistant-main
-npm install
-npm run dev        # nodemon server.js — hot reload on port 8080
-```
+
+| Technology | Purpose |
+|---|---|
+| Node.js + Express 5 | REST API server |
+| Groq SDK | LLM inference — Llama 3.3 70B, Qwen QwQ 32B, Whisper, Llama 4 Scout |
+| Google Generative AI | Gemini 2.5 Flash for creative queries |
+| Tavily API | Real-time web search |
+| Mem0 API | Persistent memory across sessions |
+| Supabase | JWT verification middleware |
+| LangChain | PDF text splitting and chunking |
+| Multer | File and audio upload handling |
 
 ### Frontend
+
+| Technology | Purpose |
+|---|---|
+| React 18 | UI framework |
+| React Router v7 | Client-side routing |
+| Supabase JS | Auth — email, password, Google OAuth |
+| React Markdown + remark-gfm | Render AI markdown responses |
+| React Syntax Highlighter | Code block syntax highlighting |
+| Lucide React | Icon library |
+| Web Worker | Background streaming (tab-hidden generation) |
+| MediaRecorder API | Voice recording before Whisper transcription |
+
+### Testing
+
+| Technology | Purpose |
+|---|---|
+| Jest | Backend unit and integration tests |
+| Supertest | HTTP endpoint testing |
+| Nock | HTTP request mocking for external APIs |
+| React Testing Library | Frontend component tests |
+
 ```bash
-cd Nexmind-main
-npm install
-npm start          # react-scripts start — hot reload on port 3000
+# Backend tests with coverage
+cd my-ai-assistant && npm test
+
+# Frontend tests
+cd chymera && npm test
 ```
 
-The frontend proxies `/chat`, `/upload`, `/auth` to `http://localhost:8080` via the `"proxy"` field in `package.json`.
+Coverage threshold enforced at 70% branches, 80% functions and lines.
+
+### Infrastructure
+
+| Technology | Purpose |
+|---|---|
+| Railway | Backend hosting, auto-deploy on push |
+| Vercel | Frontend hosting, CDN, CI/CD |
+| Supabase | Auth + PostgreSQL database |
+| GitHub | Version control, CI/CD trigger |
 
 ---
 
-## Core Features
+## Project Structure
 
-### Multi-Provider AI Routing
-**File:** `my-ai-assistant-main/routes/chat.js` — `getModel()` function
-
-| Query Type | Model | Provider |
-|---|---|---|
-| `coding` | `llama-3.3-70b-versatile` | Groq |
-| `reasoning` | `qwen-qwq-32b` | Groq |
-| `search` (default) | `gemini-2.5-flash` | Google |
-| User-selected | Any of the above | Depends |
-
-Classification is in `utils/classifier.js`. All non-code, non-math queries return `'search'` by default, which routes to Gemini 2.5 Flash and triggers Tavily web search.
-
-### SSE Streaming
-Backend sets `Content-Type: text/event-stream` and writes `data: {...}\n\n` chunks. Frontend reads via `ReadableStream` in `src/utils/api.js`. Each chunk is `{ content: string }` during streaming, and a final `{ done: true, modelUsed, queryType, toolsUsed, sources }` event closes the stream.
-
-### Live Web Search (Tavily)
-When `queryType === 'search'`, the backend calls Tavily with `searchDepth: "advanced"` and `maxResults: 5`. Results are injected into the system prompt as numbered `[1]...[5]` sources. The model is instructed to cite only facts present in those results. Source URLs are returned in the `done` SSE event and stored on the message object for display.
-
-### Persistent Memory (Mem0)
-On every completed response, both the user message and AI response are saved to Mem0 under `user_id`. On subsequent requests, Mem0 is searched for relevant context (limit 3) and injected into the system prompt as `[USER CONTEXT]`. Memory is skipped when a PDF document is attached to avoid context pollution.
-
-### Tool Calling (Groq only)
-Two tools are registered in `utils/tools.js`:
-- `search_wikipedia(query)` — fetches Wikipedia REST API summary
-- `read_github_repo(owner, repo, path)` — fetches file content from GitHub API
-
-Tool calls are streamed, aggregated, executed, and a second Groq pass synthesises the results. Gemini uses its own native search grounding and does not go through the tool system.
-
-### PDF Processing
-Upload flow: `FileReader` → base64 → `POST /upload` → `documentProcessor.js` (LangChain text splitter) → chunks returned to frontend → chunks injected as `[ATTACHED DOCUMENTS]` in the next user message.
-
-### Vision (Image Analysis)
-Images are sent as base64 to `POST /chat/vision` → `meta-llama/llama-4-scout-17b-16e-instruct` on Groq. The vision model specialises in code, errors, UI screenshots, and diagrams.
-
-### Auth Flow
-Supabase handles signup, login, and Google OAuth. JWT from Supabase session is attached as `Authorization: Bearer <token>` on every protected request. `middleware/auth.middleware.js` verifies the JWT server-side before any route handler runs. Google OAuth users are redirected to `/chat` and prompted for a phone number via `PhoneCapture.jsx` if not already set.
-
----
-
-## Key Files Reference
-
-### `my-ai-assistant-main/utils/systemPrompt.js`
-The base system prompt injected on every request. Uses pure ASCII (no Unicode box-drawing characters). Sections: identity, tools, answer structure, formatting rules, voice, and when-unsure fallback.
-
-### `my-ai-assistant-main/utils/classifier.js`
-Returns `'coding'` for code-related keywords, `'reasoning'` for math keywords, and `'search'` for everything else. The `'search'` default ensures Tavily fires on all general/factual questions.
-
-### `my-ai-assistant-main/server.js`
-CORS is configured for all active frontend origins including the Vercel deployment.
-
-### `src/utils/api.js`
-- `sendMessage()` — SSE consumer with AbortController signal support, sources extraction from done event
-- `sendVisionMessage()` — multipart form POST for image analysis
-- `uploadPdf()` — axios POST with progress callback and abort support
-- `detectFileRequest()` — regex parser for "create a markdown file..." style requests
-- `generateTitle()` — calls `/chat/title` for auto-naming sessions
-
-### `src/context/ChatContext.jsx`
-Central state for sessions, messages, streaming, artifacts. Key behaviours:
-- Sessions persisted to `localStorage` under key `chymera.chat.state.v1`
-- `abortRef` holds the current `AbortController` for stop-generation
-- `send()` handles file generation requests (detected via `detectFileRequest`) separately from chat requests
-- XML artifact parsing via state machine inside the token callback (`<file path="...">...</file>`)
-- `stopGeneration()` exposed in context value
-
-### `src/components/InputBar.jsx`
-Default model is `gemini-2.5-flash` to match the backend routing default.
-
-### `src/pages/Landing.jsx` + `Landing.css`
-Landing page with reveal animations via IntersectionObserver. Observer is centralised in `Landing.jsx` with a 2.5s fallback to ensure all sections render correctly.
-
----
-
-## Deployment
-
-### Frontend (Vercel)
-```bash
-cd Nexmind-main
-npm run build
-# Push to GitHub — Vercel auto-deploys on push to main
 ```
-Set all `REACT_APP_*` env vars in Vercel dashboard under Settings → Environment Variables.
+my-ai-assistant/                     Chymera/
+├── lib/
+│   └── aiCore.js          ← KeyPool, model routing, streaming logic
+├── middleware/
+│   └── auth.middleware.js ← Supabase JWT verification
+├── routes/
+│   ├── auth.routes.js     ← signup, login, /me
+│   ├── chat.js            ← chat, vision, title, transcribe, generate-file
+│   └── upload.routes.js   ← PDF upload
+├── utils/
+│   ├── classifier.js      ← 7-type query classifier
+│   ├── documentProcessor.js
+│   ├── systemPrompt.js    ← AI identity, rules, few-shot examples
+│   └── tools.js           ← Wikipedia + GitHub tool definitions
+└── server.js
 
-### Backend (Railway)
-Push `my-ai-assistant-main` to its own GitHub repo. Railway auto-deploys on push.
-Set all backend env vars in Railway dashboard under Variables.
-The `Procfile` contains: `web: node server.js`
+                             ├── public/
+                             │   └── streamWorker.js  ← Web Worker for background streaming
+                             ├── src/
+                             │   ├── components/
+                             │   │   ├── ChatArea.jsx     ← smart scroll, scroll-to-bottom btn
+                             │   │   ├── InputBar.jsx     ← voice, stop btn, file gen, slash cmds
+                             │   │   ├── Message.jsx      ← regenerate, edit, copy, sources
+                             │   │   ├── Sidebar.jsx      ← collapsible, search, key rotation UI
+                             │   │   ├── ArtifactViewer.jsx
+                             │   │   ├── FileGenerator.jsx
+                             │   │   └── landing/         ← AuthCard, ChatDemo, Capabilities
+                             │   ├── context/
+                             │   │   ├── AuthContext.jsx  ← Supabase session management
+                             │   │   └── ChatContext.jsx  ← sessions, streaming, retry, edit
+                             │   └── utils/
+                             │       └── api.js
+                             └── vercel.json
+```
 
 ---
 
-## Tech Stack Summary
+## Getting Started
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend framework | React 18, React Router v7 |
-| Styling | CSS Modules (plain CSS per component), Tailwind (available, partially used) |
-| Auth | Supabase (email/password + Google OAuth) |
-| AI — fast/code | Groq — Llama 3.3 70B Versatile |
-| AI — reasoning | Groq — Qwen QwQ 32B |
-| AI — default/search | Google Gemini 2.5 Flash |
-| AI — vision | Groq — Llama 4 Scout 17B |
-| Web search | Tavily (advanced depth, 5 results) |
-| Memory | Mem0 |
-| Document processing | LangChain text splitter + PDF extraction |
-| Backend runtime | Node.js + Express 5 |
-| Backend deploy | Railway |
-| Frontend deploy | Vercel |
-| Fonts | Instrument Serif (display), DM Sans (body), JetBrains Mono (code) — loaded via Google Fonts link tag in index.html |
-____
+### Prerequisites
+
+- Node.js 20+
+- Free accounts: Groq, Tavily, Mem0, Supabase, Google AI Studio
+
+### 1. Clone and install
+
+```bash
+# Backend
+git clone https://github.com/xx-abhijeet-xx/my-ai-assistant.git
+cd my-ai-assistant && npm install
+
+# Frontend
+git clone https://github.com/xx-abhijeet-xx/chymera.git
+cd chymera && npm install
+```
+
+### 2. Configure environment variables
+
+**Backend `.env`:**
+```env
+PORT=8080
+
+# Groq — supports up to 10 keys for rotation
+GROQ_API_KEY=gsk_your_primary_key
+GROQ_API_KEY_1=gsk_your_second_key
+
+# Google Gemini — supports up to 10 keys
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key
+
+# Other services
+TAVILY_API_KEY=tvly_your_key
+MEM0_API_KEY=m0_your_key
+
+# Supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+```
+
+**Frontend `.env.local`:**
+```env
+REACT_APP_API_URL=http://localhost:8080
+REACT_APP_SUPABASE_URL=https://your-project.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=your_anon_key
+```
+
+### 3. Run locally
+
+```bash
+# Backend (port 8080)
+npm run dev
+
+# Backend tests
+npm test
+
+# Frontend (port 3000)
+npm start
+
+# Frontend tests
+npm test
+```
+
+---
+
+## API Reference
+
+### POST /chat
+Stream an AI response via SSE.
+
+```json
+{
+  "message": "fix this bug: users.map is not a function",
+  "history": [],
+  "modelId": "llama-3.3-70b-versatile",
+  "documentContexts": [],
+  "imagesBase64": []
+}
+```
+
+SSE events:
+```
+data: {"content": "users"}
+data: {"content": " is undefined"}
+data: {"done": true, "modelUsed": "llama-3.3-70b-versatile", "queryType": "coding", "sources": []}
+```
+
+### POST /chat/vision
+Analyze an image with a text prompt. `multipart/form-data` with `image` file field.
+
+### POST /chat/transcribe
+Transcribe audio via Groq Whisper. `multipart/form-data` with `audio` file field.
+Returns `{ transcript: "transcribed text" }`.
+
+### POST /chat/title
+Generate a 5-word chat title from a message.
+Returns `{ title: "Fix Users Map Error" }`.
+
+### POST /chat/generate-file
+Generate file content and return it for download.
+Returns `{ content: "...", fileName: "output.md", fileType: "md" }`.
+
+### POST /upload
+Process a PDF and return text chunks for context injection.
+Returns `{ fileName, pageCount, chunkCount, chunks }`.
+
+### GET /health/keys
+Returns real-time status of all API key pools.
+
+```json
+{
+  "groq": [
+    { "key": "key_1", "available": true, "failures": 0, "totalRequests": 142, "cooldownRemainingSeconds": 0 }
+  ],
+  "gemini": [
+    { "key": "key_1", "available": false, "failures": 2, "cooldownRemainingSeconds": 47 }
+  ]
+}
+```
+
+---
+
+## System Prompt Design
+
+The AI personality is defined in `utils/systemPrompt.js` using a rules + few-shot examples approach. Rules alone achieve ~60% compliance. Rules + examples achieve ~90% compliance.
+
+Key sections:
+- **Identity** — name, user context, tech stack awareness
+- **Tone** — explicit examples for every chitchat message type
+- **Banned phrases** — 15 specific phrases the model must never use
+- **Answer structure** — per-query-type response patterns
+- **Code quality standards** — DTOs, no null returns, @Valid, proper deps
+- **Follow-up question rule** — explicitly banned
+- **Examples** — 15 concrete before/after pairs covering every query type
+
+---
+
+## What I Learned
+
+- **SSE streaming** end to end from Express to React with Web Worker background execution
+- **LLM query classification** — 7-type classifier with priority ordering to prevent misrouting
+- **Production key rotation** — KeyPool class with exponential backoff, per-key health tracking
+- **Prompt engineering** — rules + few-shot examples vs rules alone, compliance rates
+- **Fine-tuning pipeline** — JSONL dataset creation, QLoRA training on Kaggle free GPU, overfitting detection
+- **Multi-model orchestration** — routing between Groq, Gemini, Whisper based on query type
+- **Tool calling** — Wikipedia and GitHub as native AI capabilities via function calling
+- **Auth architecture** — Supabase JWT, middleware verification, Google OAuth flow
+- **PDF RAG** — LangChain chunking, context injection into prompts
+
+---
+
+## Roadmap
+
+- [ ] User authentication dashboard (usage stats, API key management)
+- [ ] Conversation sharing via public link
+- [ ] Chat folders and organization
+- [ ] Code execution sandbox (run JS/Python inline)
+- [ ] Mobile app (React Native)
+- [ ] Custom instructions per conversation
+- [ ] Plugin marketplace (user-enabled tools)
+
+---
+
+## Author
+
+**Abhijeet Verma** — Full Stack Engineer at LTIMindtree
+
+[GitHub](https://github.com/xx-abhijeet-xx) · [LinkedIn](https://linkedin.com/in/abhijeet-verma-dev) · [Portfolio](https://abhijeetbuilds.netlify.app/) · contact.abhijeetverma@gmail.com
+
+---
+
+> Built from scratch. Every feature shipped, debugged, and deployed. 🚀
