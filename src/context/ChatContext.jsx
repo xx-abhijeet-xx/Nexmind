@@ -65,6 +65,7 @@ export function ChatProvider({ children }) {
   const workerRef = useRef(null);
   const [dbLoading, setDbLoading] = useState(true);
   const userHasSelectedRef = useRef(false);
+  const retryRef = useRef(false);
 
   useEffect(() => {
     workerRef.current = new Worker('/streamWorker.js');
@@ -271,6 +272,35 @@ export function ChatProvider({ children }) {
     if ((!messageText && imagesBase64.length === 0 && documentContexts.length === 0) || loading) return;
     setError(null);
 
+    const trimmedLower = messageText.toLowerCase();
+    const INSTANT_REPLIES = {
+      'nice': '👍', 'cool': '👍', 'great': '👍', 'awesome': '🔥',
+      'wow': '🤯', 'ok': 'Cool.', 'okay': 'Cool.', 'k': '👍',
+      'kk': '👍', 'yep': 'Yep.', 'yup': 'Yep.', 'nope': 'Nope.',
+      'hmm': 'Hmm.', 'hm': 'Hmm.', 'oh': 'Oh.', 'brb': '👍', 'gtg': 'Later.',
+      'lmao': 'haha', 'lmfao': 'haha', 'haha': 'haha', 'hahaha': 'haha',
+      'hehe': 'heh', '👍': '👍', '🙏': '🙏'
+    };
+    const instantReply = INSTANT_REPLIES[trimmedLower];
+
+    if (instantReply && imagesBase64.length === 0 && documentContexts.length === 0) {
+      const userMsg = { id: uuid(), role: 'user', content: messageText, ts: Date.now() };
+      const aiMsg = { id: uuid(), role: 'assistant', content: instantReply, ts: Date.now() + 10, streaming: false, model: 'system' };
+      
+      setSessions(prev => prev.map(s =>
+        s.id === activeId ? { ...s, messages: markLastAssistant([...s.messages, userMsg, aiMsg]) } : s
+      ));
+
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          saveConversationToDB(activeId, activeSession.title, user.id);
+          saveMessageToDB(userMsg, activeId, user.id);
+          saveMessageToDB(aiMsg, activeId, user.id);
+        }
+      });
+      return;
+    }
+
     const userMsg = {
       id: uuid(),
       role: 'user',
@@ -280,11 +310,19 @@ export function ChatProvider({ children }) {
       ts: Date.now(),
     };
 
-    setSessions(prev => prev.map(s =>
-      s.id === activeId
-        ? { ...s, messages: markLastAssistant([...s.messages, userMsg]) }
-        : s
-    ));
+    // If it's a retry, we don't need to append the user message again if it's already there
+    // But since we are removing the AI message, we might just append it or skip it.
+    // The prompt says "Resend the same user message", so let's check if the last message is already this user's message.
+    const isRetryAction = retryRef.current;
+    
+    setSessions(prev => prev.map(s => {
+      if (s.id !== activeId) return s;
+      const last = s.messages[s.messages.length - 1];
+      if (isRetryAction && last && last.role === 'user' && last.content === messageText) {
+        return s;
+      }
+      return { ...s, messages: markLastAssistant([...s.messages, userMsg]) };
+    }));
 
     if (activeSession.messages.length === 0) {
       generateTitle(messageText || 'Image analysis').then(title => {
@@ -528,19 +566,57 @@ export function ChatProvider({ children }) {
         });
       });
 
-      setSessions(prev => prev.map(s => {
-        if (s.id !== activeId) return s;
-        return {
-          ...s,
-          messages: markLastAssistant(
-            s.messages.map(m =>
-              m.id === aiId
-                ? { ...m, streaming: false, isThinking: false, ...metadata }
-                : m
+      const finalContent = accumulatedContent.trim();
+
+      if (!finalContent) {
+        if (!retryRef.current) {
+          retryRef.current = true;
+          // Remove the empty AI message
+          setSessions(prev => prev.map(s => {
+            if (s.id !== activeId) return s;
+            return {
+              ...s,
+              messages: markLastAssistant(s.messages.filter(m => m.id !== aiId))
+            };
+          }));
+          setTimeout(() => {
+            send(messageText, options);
+          }, 800);
+          return;
+        } else {
+          // Response was empty — show a clean fallback message
+          retryRef.current = false;
+          setSessions(prev => prev.map(s => {
+            if (s.id !== activeId) return s;
+            return {
+              ...s,
+              messages: markLastAssistant(
+                s.messages.map(m =>
+                  m.id === aiId
+                    ? { ...m, streaming: false, isThinking: false, content: "Something went wrong — no response received. Try again.", model: metadata.modelUsed }
+                    : m
+                )
+              )
+            };
+          }));
+          accumulatedContent = "Something went wrong — no response received. Try again.";
+        }
+      } else {
+        retryRef.current = false;
+        setSessions(prev => prev.map(s => {
+          if (s.id !== activeId) return s;
+          return {
+            ...s,
+            messages: markLastAssistant(
+              s.messages.map(m =>
+                m.id === aiId
+                  ? { ...m, streaming: false, isThinking: false, ...metadata }
+                  : m
+              )
             )
-          )
-        };
-      }));
+          };
+        }));
+      }
 
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user) {
