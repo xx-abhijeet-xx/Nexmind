@@ -62,9 +62,16 @@ export function ChatProvider({ children }) {
   const [rateLimitStats, setRateLimitStats] = useState(null);
   const [artifactViewerOpen, setArtifactViewerOpen] = useState(false);
   const [artifacts, setArtifacts] = useState([]); // Array of { path, content, language }
-  const abortRef = useRef(null);
+  const workerRef = useRef(null);
   const [dbLoading, setDbLoading] = useState(true);
   const userHasSelectedRef = useRef(false);
+
+  useEffect(() => {
+    workerRef.current = new Worker('/streamWorker.js');
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, []);
   
   // Extend activeSession with rate limit data for convenience (optional)
   const activeSession = sessions.find(s => s.id === activeId) || sessions[0];
@@ -380,7 +387,6 @@ export function ChatProvider({ children }) {
         : s
     ));
 
-    abortRef.current = new AbortController();
     setLoading(true);
     try {
       let accumulatedContent = '';
@@ -422,71 +428,105 @@ export function ChatProvider({ children }) {
         setTimeout(drainBuffer, 18);
       };
 
-      const metadata = await sendMessage(
-        messageText,
-        activeSession.messages,
-        (token) => {
-          // On first token: mark thinking as done
-          if (!firstTokenReceived) {
-            firstTokenReceived = true;
-            setSessions(prev => prev.map(s => {
-              if (s.id !== activeId) return s;
-              return {
-                ...s,
-                messages: markLastAssistant(
-                  s.messages.map(m =>
-                    m.id === aiId ? { ...m, isThinking: false } : m
+      const metadata = await new Promise((resolve, reject) => {
+        const worker = workerRef.current;
+        if (!worker) return reject(new Error('Worker not initialized'));
+
+        const onWorkerMessage = (e) => {
+          const { type, token, metadata, error } = e.data;
+          
+          if (type === 'TOKEN') {
+            // On first token: mark thinking as done
+            if (!firstTokenReceived) {
+              firstTokenReceived = true;
+              setSessions(prev => prev.map(s => {
+                if (s.id !== activeId) return s;
+                return {
+                  ...s,
+                  messages: markLastAssistant(
+                    s.messages.map(m =>
+                      m.id === aiId ? { ...m, isThinking: false } : m
+                    )
                   )
-                )
-              };
-            }));
-          }
-
-          accumulatedContent += token;
-
-          // Split token into words and buffer them
-          // (tokens can be multiple chars; split on spaces to animate word-by-word)
-          const words = token.split(/(\s+)/);
-          words.forEach(w => { if (w) tokenBuffer.push(w); });
-
-          if (!drainActive) drainBuffer();
-
-          // Also track full content for artifact XML parsing
-          let visibleContent = accumulatedContent;
-          const fileStartMatch = accumulatedContent.match(/<file\s+path="([^"]+)">/);
-          if (fileStartMatch) {
-            isInsideFile = true;
-            currentFilePath = fileStartMatch[1];
-            const beforeStart = accumulatedContent.substring(0, fileStartMatch.index);
-            visibleContent = beforeStart;
-            const fileEndMatch = accumulatedContent.substring(fileStartMatch.index).match(/<\/file>/);
-            if (fileEndMatch) {
-              const startIdx = fileStartMatch.index + fileStartMatch[0].length;
-              const endIdx = fileStartMatch.index + fileEndMatch.index;
-              currentFileContent = accumulatedContent.substring(startIdx, endIdx).trim();
-              setArtifacts(prev => {
-                const existing = prev.findIndex(a => a.path === currentFilePath);
-                if (existing >= 0) {
-                  const copy = [...prev];
-                  copy[existing].content = currentFileContent;
-                  return copy;
-                }
-                return [...prev, { path: currentFilePath, content: currentFileContent }];
-              });
-              setArtifactViewerOpen(true);
-              const afterEnd = accumulatedContent.substring(fileStartMatch.index + fileEndMatch.index + fileEndMatch[0].length);
-              accumulatedContent = beforeStart + afterEnd;
-              isInsideFile = false;
-              currentFilePath = '';
-              currentFileContent = '';
+                };
+              }));
             }
+
+            accumulatedContent += token;
+
+            // Split token into words and buffer them
+            // (tokens can be multiple chars; split on spaces to animate word-by-word)
+            const words = token.split(/(\s+)/);
+            words.forEach(w => { if (w) tokenBuffer.push(w); });
+
+            if (!drainActive) drainBuffer();
+
+            // Also track full content for artifact XML parsing
+            let visibleContent = accumulatedContent;
+            const fileStartMatch = accumulatedContent.match(/<file\s+path="([^"]+)">/);
+            if (fileStartMatch) {
+              isInsideFile = true;
+              currentFilePath = fileStartMatch[1];
+              const beforeStart = accumulatedContent.substring(0, fileStartMatch.index);
+              visibleContent = beforeStart;
+              const fileEndMatch = accumulatedContent.substring(fileStartMatch.index).match(/<\/file>/);
+              if (fileEndMatch) {
+                const startIdx = fileStartMatch.index + fileStartMatch[0].length;
+                const endIdx = fileStartMatch.index + fileEndMatch.index;
+                currentFileContent = accumulatedContent.substring(startIdx, endIdx).trim();
+                setArtifacts(prev => {
+                  const existing = prev.findIndex(a => a.path === currentFilePath);
+                  if (existing >= 0) {
+                    const copy = [...prev];
+                    copy[existing].content = currentFileContent;
+                    return copy;
+                  }
+                  return [...prev, { path: currentFilePath, content: currentFileContent }];
+                });
+                setArtifactViewerOpen(true);
+                const afterEnd = accumulatedContent.substring(fileStartMatch.index + fileEndMatch.index + fileEndMatch[0].length);
+                accumulatedContent = beforeStart + afterEnd;
+                isInsideFile = false;
+                currentFilePath = '';
+                currentFileContent = '';
+              }
+            }
+          } else if (type === 'DONE') {
+            worker.removeEventListener('message', onWorkerMessage);
+            resolve(metadata);
+          } else if (type === 'ERROR') {
+            worker.removeEventListener('message', onWorkerMessage);
+            reject(new Error(error || 'HTTP error'));
+          } else if (type === 'ABORTED') {
+            worker.removeEventListener('message', onWorkerMessage);
+            const err = new Error('Aborted');
+            err.name = 'AbortError';
+            reject(err);
           }
-        },
-        options.documentContexts || [],
-        options.modelId || 'llama-3.3-70b-versatile',
-        options.imagesBase64 || [],
-        abortRef.current?.signal
-      );
+        };
+
+        worker.addEventListener('message', onWorkerMessage);
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          worker.postMessage({
+            type: 'START',
+            payload: {
+              url: `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/chat`,
+              headers: {
+                ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+              },
+              body: {
+                message: messageText,
+                history: activeSession.messages,
+                userId: session?.user?.id || process.env.REACT_APP_USER_ID || 'Guest',
+                modelId: options.modelId || 'llama-3.3-70b-versatile',
+                documentContexts: options.documentContexts || [],
+                imagesBase64: options.imagesBase64 || [],
+              }
+            }
+          });
+        });
+      });
 
       setSessions(prev => prev.map(s => {
         if (s.id !== activeId) return s;
@@ -527,9 +567,8 @@ export function ChatProvider({ children }) {
   }, [activeId, activeSession, loading, updateTitle]);
 
   const stopGeneration = useCallback(() => {
-    if (abortRef.current) {
-      abortRef.current.abort();
-      abortRef.current = null;
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'STOP' });
     }
     setLoading(false);
   }, []);

@@ -80,8 +80,10 @@ export default function InputBar({ isNewChat }) {
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const textareaRef = useRef(null);
   const attachmentInputRef = useRef(null);
-  const recognitionRef = useRef(null);
   const modelMenuRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const [transcribing, setTranscribing] = useState(false);
 
   const MODELS = [
     { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', icon: '🦙' },
@@ -109,9 +111,6 @@ export default function InputBar({ isNewChat }) {
     document.addEventListener('chymera:editMessage', onEdit);
     return () => {
       document.removeEventListener('chymera:editMessage', onEdit);
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
     };
   }, []);
 
@@ -238,98 +237,96 @@ export default function InputBar({ isNewChat }) {
     });
   };
 
-  const stopVoice = () => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (_) {
-        // Ignore stop failures and reset local listening state.
-      }
-      setListening(false);
-    }
-  };
+  const startVoice = async () => {
+    if (loading || transcribing) return;
 
-  const startVoice = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (loading) return;
-
-    if (recognitionRef.current || listening) {
-      stopVoice();
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
       return;
     }
-
-    if (!SpeechRecognition) {
-      setError('Voice input is not supported in this browser. Try Chrome or Edge.');
-      return;
-    }
-
-    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
-      setError('Voice input requires HTTPS (or localhost).');
-      return;
-    }
-
-    setError(null);
-    setListening(true);
-
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-    recognition.lang = 'en-US';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => setListening(true);
-    recognition.onresult = (e) => {
-      const transcript = Array.from(e.results || [])
-        .slice(e.resultIndex || 0)
-        .map(result => result?.[0]?.transcript || '')
-        .join(' ')
-        .trim();
-
-      if (transcript) {
-        setText(prev => (prev ? `${prev} ${transcript}`.trim() : transcript));
-      }
-    };
-    recognition.onerror = (event) => {
-      if (event.error === 'aborted') {
-        setListening(false);
-        return;
-      }
-
-      const message = event.error === 'not-allowed' || event.error === 'service-not-allowed'
-        ? 'Microphone access was blocked. Allow mic permission and try again.'
-        : event.error === 'audio-capture'
-          ? 'No microphone was found. Check your audio input device.'
-          : event.error === 'network'
-            ? (navigator.onLine
-                ? 'Speech service is unreachable on this network/browser. Try Chrome/Edge, VPN off, or another network.'
-                : 'You appear to be offline. Reconnect and try voice input again.')
-            : event.error === 'no-speech'
-              ? 'No speech detected. Try again and speak clearly.'
-              : event.error === 'language-not-supported'
-                ? 'Selected speech language is not supported by this browser.'
-                : 'Voice input failed. Please try again.';
-
-      setError(message);
-      setListening(false);
-      recognitionRef.current = null;
-    };
-    recognition.onend = () => {
-      setListening(false);
-      recognitionRef.current = null;
-    };
 
     try {
-      recognition.start();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        setListening(false);
+        setTranscribing(true);
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+
+        if (audioBlob.size < 500) {
+          setError('Too short. Speak clearly and try again.');
+          setTranscribing(false);
+          return;
+        }
+
+        try {
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'audio.webm');
+
+          const { data: { session } } = await supabase.auth.getSession();
+
+          const res = await fetch(
+            `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/chat/transcribe`,
+            {
+              method: 'POST',
+              headers: {
+                ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+              },
+              body: formData,
+            }
+          );
+
+          if (!res.ok) throw new Error('Transcription failed');
+
+          const { transcript } = await res.json();
+
+          if (transcript) {
+            setText(prev =>
+              prev ? `${prev} ${transcript}`.trim() : transcript
+            );
+            setTimeout(() => textareaRef.current?.focus(), 50);
+          } else {
+            setError('No speech detected. Try again.');
+          }
+        } catch {
+          setError('Transcription failed. Check your connection.');
+        } finally {
+          setTranscribing(false);
+        }
+      };
+
+      mediaRecorder.start();
+      setListening(true);
+      setError(null);
+
     } catch (err) {
+      setError(
+        err.name === 'NotAllowedError'
+          ? 'Mic blocked. Allow microphone permission.'
+          : 'Could not access microphone.'
+      );
       setListening(false);
-      recognitionRef.current = null;
-      const message = err?.name === 'NotAllowedError'
-        ? 'Microphone access was blocked. Allow mic permission and try again.'
-        : err?.name === 'InvalidStateError'
-          ? 'Voice input is already starting. Wait a moment and try again.'
-          : 'Voice input could not start. Please try again.';
-      setError(message);
     }
   };
 
@@ -537,19 +534,33 @@ export default function InputBar({ isNewChat }) {
               </button>
             )}
             <button
-              className={`input-icon-btn ${listening ? 'input-icon-btn--active' : ''}`}
-              title={listening ? 'Listening...' : 'Voice input'}
+              className={`input-icon-btn ${
+                listening || transcribing ? 'input-icon-btn--active' : ''
+              }`}
+              title={
+                transcribing ? 'Transcribing...' :
+                listening    ? 'Stop recording'  :
+                               'Voice input'
+              }
               type="button"
               onClick={startVoice}
-              disabled={false}
-              aria-label={listening ? 'Stop voice input' : 'Start voice input'}
+              disabled={transcribing || loading}
+              aria-label="Voice input"
             >
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
-                <rect x="6" y="2" width="4" height="7" rx="2"/>
-                <path d="M4 7a4 4 0 008 0"/>
-                <line x1="8" y1="11" x2="8" y2="14"/>
-                <line x1="5.5" y1="14" x2="10.5" y2="14"/>
-              </svg>
+              {transcribing ? (
+                <div className="spinner-sm" />
+              ) : listening ? (
+                <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13">
+                  <rect x="3" y="3" width="10" height="10" rx="2"/>
+                </svg>
+              ) : (
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                     strokeWidth="1.8" width="14" height="14">
+                  <rect x="5" y="1" width="6" height="9" rx="3"/>
+                  <path d="M2 8a6 6 0 0 0 12 0"/>
+                  <line x1="8" y1="14" x2="8" y2="16"/>
+                </svg>
+              )}
             </button>
           </div>
         </div>

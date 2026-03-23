@@ -478,3 +478,12 @@
 .stop-btn:hover {
   background: rgba(239, 68, 68, 0.25);
 }
+
+.spinner-sm {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
