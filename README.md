@@ -4,7 +4,7 @@
 
 **Frontend:** [chymera.netlify.app](https://chymera.netlify.app)
 **Backend:** Deployed on Railway
-**Author:** Abhijeet Verma — [github.com/xx-abhijeet-xx](https://github.com/xx-abhijeet-xx) · [linkedin.com/in/abhijeet-verma-dev](https://linkedin.com/in/abhijeet-verma-dev)
+**Author:** Abhijeet Verma — [github.com/abhijeet-builds](https://github.com/abhijeet-builds) · [linkedin.com/in/abhijeet-verma-dev](https://linkedin.com/in/abhijeet-verma-dev)
 
 ---
 
@@ -219,11 +219,11 @@ my-ai-assistant/                     Chymera/
 
 ```bash
 # Backend
-git clone https://github.com/xx-abhijeet-xx/my-ai-assistant.git
+git clone https://github.com/abhijeet-builds/my-ai-assistant.git
 cd my-ai-assistant && npm install
 
 # Frontend
-git clone https://github.com/xx-abhijeet-xx/chymera.git
+git clone https://github.com/abhijeet-builds/chymera.git
 cd chymera && npm install
 ```
 
@@ -376,7 +376,7 @@ Key sections:
 
 **Abhijeet Verma** — Full Stack Engineer at LTIMindtree
 
-[GitHub](https://github.com/xx-abhijeet-xx) · [LinkedIn](https://linkedin.com/in/abhijeet-verma-dev) · [Portfolio](https://abhijeetbuilds.netlify.app/) · contact.abhijeetverma@gmail.com
+[GitHub](https://github.com/abhijeet-builds) · [LinkedIn](https://linkedin.com/in/abhijeet-verma-dev) · [Portfolio](https://abhijeetbuilds.netlify.app/) · contact.abhijeetverma@gmail.com
 
 ---
 
